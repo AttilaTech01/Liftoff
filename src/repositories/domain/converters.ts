@@ -1,4 +1,5 @@
 import { ItemInformationResponse, Item, Board, Group, Column } from './ItemInformationResponse';
+import { UserInformationResponse, User } from './UserInformationResponse';
 
 export class Converters {
     public static convertToItemArray(response: ItemInformationResponse): Item[] {
@@ -31,6 +32,16 @@ export class Converters {
         return {
             id: data["id"],
             text: data["text"]
+        };
+    }
+
+    public static convertToUserArray(response: UserInformationResponse): User[] {
+        return response.data.users.map(user => Converters.convertToUser(user));
+    }
+
+    private static convertToUser(data: any): User {
+        return {
+            name: data["name"]
         };
     }
 }

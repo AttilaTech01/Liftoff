@@ -15,9 +15,9 @@ class MondayController {
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
-            const { boardId, itemId, nameNewValue } = inputFields;
+            const { boardId, itemId, nameNewValue, userId } = inputFields;
 
-            await mondayService.updateItemName(boardId, itemId, nameNewValue);
+            await mondayService.updateItemName(boardId, itemId, nameNewValue, userId);
 
             return res.status(200).send({message: 'Name has been updated successfully'});
         } catch (err) {

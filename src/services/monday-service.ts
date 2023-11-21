@@ -1,12 +1,13 @@
 import mondayRepo from '../repositories/monday-repository';
 import { Item } from '../repositories/domain/ItemInformationResponse';
+import { User } from '../repositories/domain/UserInformationResponse';
 
 interface IMondayService {
-    updateItemName(boardId: number, itemId: number, value: string): Promise<boolean>;
+    updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
 class MondayService implements IMondayService {
-  async updateItemName(boardId: number, itemId: number, value: string): Promise<boolean> { 
+  async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
     try {  
         //Get infos from item
         const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
@@ -25,8 +26,12 @@ class MondayService implements IMondayService {
 
             switch(valuesToUse[index]) { 
                 case "{user.name}": { 
-                    console.log("The value of {user.name} is not supported yet."); 
-                    newName = newName.replace(regEx, "N/A"); 
+                    const user: User | undefined = await mondayRepo.getUserInformations(userId);
+                    if (user) {
+                        newName = newName.replace(regEx, user.name); 
+                    } else {
+                        newName = newName.replace(regEx, "N/A"); 
+                    }
                     break; 
                 } 
                 case "{board.name}": {
