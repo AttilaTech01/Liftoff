@@ -1,6 +1,7 @@
 import initMondayClient from 'monday-sdk-js';
-import mondayService from '../services/monday-service';
 import errorCodes from '../constants/mondayErrorCodes';
+import mondayService from '../services/monday-service';
+
 
 class MondayController {
     //integrationId: 239133538

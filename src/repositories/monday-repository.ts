@@ -1,5 +1,5 @@
 import { Converters } from './domain/converters';
-import { Item, Column } from './domain/ItemInformationResponse';
+import { Item } from './domain/ItemInformationResponse';
 
 
 interface IMondayRepository {
@@ -48,17 +48,7 @@ class MondayRepository implements IMondayRepository {
             const variables = { itemId };
 
             const response = await globalThis.mondayClient.api(query, { variables });
-            const parsedResponse: Item[] = Converters.convertToItemArray(response);
-
-            const itemColumns: Column[] = parsedResponse[0].column_values;
-            for (let index in itemColumns) {
-                console.log("index " + index);
-                console.log("column id : " + parsedResponse[0].column_values[index].id);
-                console.log("column text : " + parsedResponse[0].column_values[index].text);
-                console.log("*************************************");
-            }
-
-            return parsedResponse[0];
+            return Converters.convertToItemArray(response)[0];
         } catch (err) {
             console.log(err);
         }
