@@ -1,5 +1,5 @@
 import mondayRepo from '../repositories/monday-repository';
-import { Item, Column } from '../repositories/domain/ItemInformationResponse';
+import { Item } from '../repositories/domain/ItemInformationResponse';
 
 interface IMondayService {
     updateItemName(boardId: number, itemId: number, value: string): Promise<boolean>;
