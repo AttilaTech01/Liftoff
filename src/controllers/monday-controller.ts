@@ -9,7 +9,6 @@ class MondayController {
     async applyFormula(req, res): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
-        console.log(JSON.stringify(payload));
 
         try {
             globalThis.mondayClient = initMondayClient();
@@ -18,7 +17,7 @@ class MondayController {
             const { inputFields } = payload;
             const { boardId, itemId, formula, columnId } = inputFields;
 
-            await mondayService.applyFormula(formula, itemId, columnId);
+            await mondayService.applyFormula(formula, itemId, columnId, boardId);
 
             return res.status(200).send({message: 'Formula has been applied successfully'});
         } catch (err) {

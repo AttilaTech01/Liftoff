@@ -42,6 +42,7 @@ class MondayRepository implements IMondayRepository {
                     column_values {
                         id
                         text
+                        type
                     }
                 }
             }

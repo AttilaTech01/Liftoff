@@ -31,7 +31,8 @@ export class Converters {
     private static convertToColumn(data: any): Column {
         return {
             id: data["id"],
-            text: data["text"]
+            text: data["text"],
+            type: data["type"]
         };
     }
 

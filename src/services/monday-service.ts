@@ -1,20 +1,74 @@
 import mondayRepo from '../repositories/monday-repository';
+import mathFunctions, { Operations } from '../utilities/mathFunctions';
+import { Formula } from '../models/formula';
 import { Item } from '../repositories/domain/ItemInformationResponse';
 import { User } from '../repositories/domain/UserInformationResponse';
+import { ColumnTypes } from '../constants/mondayColumnTypes';
 
 interface IMondayService {
-    applyFormula(formula: string, itemId: number, columnId: number): Promise<boolean>;
+    applyFormula(formula: string, itemId: number, columnId: string, boardId: number): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
 class MondayService implements IMondayService {
-  async applyFormula(formula: string, itemId: number, columnId: number): Promise<boolean> {
+  async applyFormula(formula: string, itemId: number, columnId: string, boardId: number): Promise<boolean> {
     try {
-        //Get values from columns
+        //Get infos from item
+        const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
+        
+        //Parse the formula : getting the values and column ids to use
+        const parsedFormula: Formula = this.parseFormulaStructure(formula);
 
-        //Math Formula
+        if (!item || !parsedFormula) {
+            return false;
+        }
+
+        //Build the array of numbers our formula needs
+        //IF contains "}", then it is a column id and we need to get the value from the monday item
+        //ELSE it is a number already
+        let numbersArray: number[] = [];
+        parsedFormula.values.forEach((formulaValue) => {
+            if (formulaValue.includes("{")) {
+                item.column_values.forEach((itemColumn) => {
+                if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && itemColumn.type === ColumnTypes.NUMBERS) {
+                    numbersArray.push(Number(itemColumn.text)); 
+                } 
+            });            
+            } else {
+                numbersArray.push(Number(formulaValue));
+            }
+        });
+
+        //Execute the right formula with the found values
+        let result: number = 0;
+        switch(parsedFormula.operation) {
+            case Operations.DIVIDE: {
+                if (parsedFormula.values.length !== 2) {
+                    return false;
+                }
+                result = mathFunctions.DIVIDE(numbersArray[0], numbersArray[1]);
+                break;
+            }
+            case Operations.MINUS: {
+                result = mathFunctions.MINUS(numbersArray);
+                break;
+            }
+            case Operations.MULTIPLY: {
+                result = mathFunctions.MULTIPLY(numbersArray);
+                break;
+            }
+            case Operations.SUM: {
+                result = mathFunctions.SUM(numbersArray);
+                break;
+            }
+            default: {
+                return false;
+            }
+        }
 
         //Write result in monday's column
+        await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, result.toString());
+
         return true;
     } catch (err) {
         console.log(err);
@@ -106,6 +160,30 @@ class MondayService implements IMondayService {
     }
 
     return valuesToReturn;
+  }
+
+  /**
+    * SUM({pulse.number1}, 23, {pulse.number2}, {pulse.number3}, 10)
+    * RETURNS
+    * {
+    *   formula : SUM
+    *   columnIds : [{pulse.number1}, 23, {pulse.number2}, {pulse.number3}, 10]
+    * }
+    */
+  private parseFormulaStructure(formulaStructure: string): Formula {
+    //Operation
+    const opRegEx = new RegExp("[A-Z]+\\(", 'g');
+    const op: RegExpMatchArray | null = formulaStructure.match(opRegEx);
+
+    //Columns Ids
+    const idsRegEx = new RegExp("{([^{]*?)}|\\d+", 'g');
+    const valuesAndColumnIds: RegExpMatchArray | null = formulaStructure.match(idsRegEx);
+
+    if (!op || !valuesAndColumnIds || valuesAndColumnIds.length === 0) {
+        throw Error("No data has been received.");
+    }
+
+    return { operation: op[0].substring(0, op[0].length - 1), values: valuesAndColumnIds };
   }
 }
 

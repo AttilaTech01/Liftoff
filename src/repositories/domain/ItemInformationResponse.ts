@@ -1,3 +1,5 @@
+import { ColumnTypes } from '../../constants/mondayColumnTypes';
+
 export interface ItemInformationResponse {
     data: {
         items:  Item[],
@@ -24,4 +26,5 @@ export interface Group {
 export interface Column {
     id: string;
     text: string;
+    type: ColumnTypes;
 } 
