@@ -3,10 +3,24 @@ import { Item } from '../repositories/domain/ItemInformationResponse';
 import { User } from '../repositories/domain/UserInformationResponse';
 
 interface IMondayService {
+    applyFormula(formula: string, itemId: number, columnId: number): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
 class MondayService implements IMondayService {
+  async applyFormula(formula: string, itemId: number, columnId: number): Promise<boolean> {
+    try {
+        //Get values from columns
+
+        //Math Formula
+
+        //Write result in monday's column
+        return true;
+    } catch (err) {
+        console.log(err);
+        return false;
+    }
+  }
   async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
     try {  
         //Get infos from item
@@ -17,14 +31,14 @@ class MondayService implements IMondayService {
         }
 
         //Search for values to use in new name
-        const valuesToUse: string[] = this.parseNameStructure(value);
+        const untrimmedColumnIds: string[] = this.parseNameStructure(value);
 
         //Create new name
         let newName: string = value;
-        for (let index in valuesToUse) {
-            const regEx = new RegExp(valuesToUse[index]);
+        for (let index in untrimmedColumnIds) {
+            const regEx = new RegExp(untrimmedColumnIds[index]);
 
-            switch(valuesToUse[index]) { 
+            switch(untrimmedColumnIds[index]) { 
                 case "{user.name}": { 
                     const user: User | undefined = await mondayRepo.getUserInformations(userId);
                     if (user) {
@@ -68,6 +82,16 @@ class MondayService implements IMondayService {
   }
 
   /**
+    * {pulse.number5}
+    * RETURNS
+    * number5
+    */
+  private getColumnIdFromCode(code: string): string {
+    const columnId = code.substring(code.indexOf('.')+1, code.lastIndexOf('}'));
+    return columnId;
+  }  
+
+  /**
     * {board.name}${pulse.group}--{pulse.number5}/{pulse.text2}
     * RETURNS
     * [{board.name}, {pulse.group}, {pulse.number5}, {pulse.text2}]
@@ -82,16 +106,6 @@ class MondayService implements IMondayService {
     }
 
     return valuesToReturn;
-  }
-
-  /**
-    * {pulse.number5}
-    * RETURNS
-    * number5
-    */
-  private getColumnIdFromCode(code: string): string {
-    const columnId = code.substring(code.indexOf('.')+1, code.lastIndexOf('}'));
-    return columnId;
   }
 }
 

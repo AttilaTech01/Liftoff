@@ -1,6 +1,6 @@
 import { Converters } from './domain/converters';
-import { Item } from './domain/ItemInformationResponse';
-import { User } from './domain/UserInformationResponse';
+import { ItemInformationResponse, Item } from './domain/ItemInformationResponse';
+import { UserInformationResponse, User } from './domain/UserInformationResponse';
 
 
 interface IMondayRepository {
@@ -48,7 +48,7 @@ class MondayRepository implements IMondayRepository {
             `;
             const variables = { itemId };
 
-            const response = await globalThis.mondayClient.api(query, { variables });
+            const response: ItemInformationResponse = await globalThis.mondayClient.api(query, { variables });
             return Converters.convertToItemArray(response)[0];
         } catch (err) {
             console.log(err);
@@ -65,7 +65,7 @@ class MondayRepository implements IMondayRepository {
             `;
             const variables = { userId };
 
-            const response = await globalThis.mondayClient.api(query, { variables });
+            const response: UserInformationResponse = await globalThis.mondayClient.api(query, { variables });
             return Converters.convertToUserArray(response)[0];
         } catch (err) {
             console.log(err);
