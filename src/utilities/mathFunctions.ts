@@ -15,8 +15,7 @@ interface IMathFunctions {
 class MathFunctions implements IMathFunctions {
     DIVIDE(numerator: number, denominator: number): number {
         if (denominator === 0) {
-            console.log("Division by zero error.");
-            return 0;
+            throw Error("Division by zero error.");
         }
 
         return numerator / denominator;
@@ -24,13 +23,14 @@ class MathFunctions implements IMathFunctions {
 
     MINUS(numbers: number[]): number {
         if (numbers.length === 0) {
-            return 0
+            throw Error("No data has been found.");
         }
 
         let result: number = numbers[0];
         numbers.forEach((number, index) => {
-            if (number[index+1]) {
-                result = result - number[index+1]; 
+            const numberToSubstract: number = numbers[index+1];
+            if (numberToSubstract) {
+                result = result - numberToSubstract; 
             }  
         });
 
@@ -39,7 +39,7 @@ class MathFunctions implements IMathFunctions {
 
     MULTIPLY(numbers: number[]): number {
         if (numbers.length === 0) {
-            return 0
+            throw Error("No data has been found.");
         }
 
         let result: number = 1;

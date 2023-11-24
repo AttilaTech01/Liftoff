@@ -25,12 +25,13 @@ class MondayService implements IMondayService {
 
         //Build the array of numbers our formula needs
         //IF contains "}", then it is a column id and we need to get the value from the monday item
+        //  IF la column Id est trouvé dans notre item && (la column est de type NUMBERS OU (la column est de type miroir && le contenu est un nombre))
         //ELSE it is a number already
         let numbersArray: number[] = [];
         parsedFormula.values.forEach((formulaValue) => {
             if (formulaValue.includes("{")) {
                 item.column_values.forEach((itemColumn) => {
-                if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && itemColumn.type === ColumnTypes.NUMBERS) {
+                if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && (itemColumn.type === ColumnTypes.NUMBERS || (itemColumn.type === ColumnTypes.LOOKUP && this.isNumeric(itemColumn.text)))) {
                     numbersArray.push(Number(itemColumn.text)); 
                 } 
             });            
@@ -44,7 +45,7 @@ class MondayService implements IMondayService {
         switch(parsedFormula.operation) {
             case Operations.DIVIDE: {
                 if (parsedFormula.values.length !== 2) {
-                    return false;
+                    throw Error("Number of values incorrect for division. Need 2 but found " + parsedFormula.values.length);
                 }
                 result = mathFunctions.DIVIDE(numbersArray[0], numbersArray[1]);
                 break;
@@ -62,7 +63,7 @@ class MondayService implements IMondayService {
                 break;
             }
             default: {
-                return false;
+                throw Error("Operation code not found. Value found : " + parsedFormula.operation);
             }
         }
 
@@ -143,6 +144,16 @@ class MondayService implements IMondayService {
   private getColumnIdFromCode(code: string): string {
     const columnId = code.substring(code.indexOf('.')+1, code.lastIndexOf('}'));
     return columnId;
+  }  
+
+  /**
+    * "10" || "123.78" || "test"
+    * RETURNS
+    * true || true || false
+    */
+  private isNumeric(valueInString: string): boolean {
+    const regEx = new RegExp("^-?[0-9]([0-9.,]+)?", 'g');
+    return regEx.test(valueInString) ? true : false;
   }  
 
   /**
