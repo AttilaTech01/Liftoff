@@ -1,5 +1,5 @@
 import mondayRepo from '../repositories/monday-repository';
-import mathFunctions, { Operations } from '../utilities/mathFunctions';
+import mathService, { MathOperationType } from './math-service';
 import { Formula } from '../models/formula';
 import { Item } from '../repositories/domain/ItemInformationResponse';
 import { User } from '../repositories/domain/UserInformationResponse';
@@ -43,27 +43,24 @@ class MondayService implements IMondayService {
         //Execute the right formula with the found values
         let result: number = 0;
         switch(parsedFormula.operation) {
-            case Operations.DIVIDE: {
+            case "DIVIDE": {
                 if (parsedFormula.values.length !== 2) {
                     throw Error("Number of values incorrect for division. Need 2 but found " + parsedFormula.values.length);
                 }
-                result = mathFunctions.DIVIDE(numbersArray[0], numbersArray[1]);
+                result = mathService.DIVIDE(numbersArray[0], numbersArray[1]);
                 break;
             }
-            case Operations.MINUS: {
-                result = mathFunctions.MINUS(numbersArray);
+            case "MINUS": {
+                result = mathService.MINUS(numbersArray);
                 break;
             }
-            case Operations.MULTIPLY: {
-                result = mathFunctions.MULTIPLY(numbersArray);
+            case "MULTIPLY": {
+                result = mathService.MULTIPLY(numbersArray);
                 break;
             }
-            case Operations.SUM: {
-                result = mathFunctions.SUM(numbersArray);
+            case "SUM": {
+                result = mathService.SUM(numbersArray);
                 break;
-            }
-            default: {
-                throw Error("Operation code not found. Value found : " + parsedFormula.operation);
             }
         }
 
@@ -194,7 +191,8 @@ class MondayService implements IMondayService {
         throw Error("No data has been received.");
     }
 
-    return { operation: op[0].substring(0, op[0].length - 1), values: valuesAndColumnIds };
+    const mathOp: MathOperationType = op[0].substring(0, op[0].length - 1) as MathOperationType;
+    return { operation: mathOp, values: valuesAndColumnIds };
   }
 }
 

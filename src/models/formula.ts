@@ -1,4 +1,6 @@
+import { MathOperationType } from '../services/math-service';
+
 export interface Formula {
-    operation: string;
+    operation: MathOperationType;
     values: string[];
 }

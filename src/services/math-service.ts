@@ -1,18 +1,13 @@
-export enum Operations {
-    DIVIDE = "DIVIDE",
-    MINUS = "MINUS",
-    MULTIPLY = "MULTIPLY",
-    SUM = "SUM",
-}
+export type MathOperationType = 'DIVIDE' | 'MINUS' | 'MULTIPLY' | 'SUM';
 
-interface IMathFunctions {
+interface IMathService {
     DIVIDE(numerator: number, denominator: number): number;
     MINUS(numbers: number[]): number;
     MULTIPLY(numbers: number[]): number;
     SUM(numbers: number[]): number;
 }
 
-class MathFunctions implements IMathFunctions {
+class MathService implements IMathService {
     DIVIDE(numerator: number, denominator: number): number {
         if (denominator === 0) {
             throw Error("Division by zero error.");
@@ -58,6 +53,6 @@ class MathFunctions implements IMathFunctions {
 
         return result;
     }
-} 
+}
 
-export default new MathFunctions;
+export default new MathService;
