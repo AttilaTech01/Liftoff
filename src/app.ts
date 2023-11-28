@@ -1,7 +1,8 @@
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import routes from './routes';
+import errorHandler from "./middlewares/errorHandler";
 
 dotenv.config();
 
@@ -10,6 +11,10 @@ const port = process.env.PORT;
 
 app.use(bodyParser.json());
 app.use(routes);
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    errorHandler.handleError(err, res);
+});
 
 app.listen(port, () => console.log(`monday-elevate is listening at http://localhost:${port}`));
 

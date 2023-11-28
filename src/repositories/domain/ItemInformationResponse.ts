@@ -1,4 +1,4 @@
-import { ColumnTypes } from '../../constants/mondayColumnTypes';
+import { MondayColumnType } from '../../constants/mondayTypes';
 
 export interface ItemInformationResponse {
     data: {
@@ -26,5 +26,5 @@ export interface Group {
 export interface Column {
     id: string;
     text: string;
-    type: ColumnTypes;
+    type: MondayColumnType;
 } 

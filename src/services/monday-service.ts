@@ -1,9 +1,12 @@
-import mondayRepo from '../repositories/monday-repository';
 import mathService, { MathOperationType } from './math-service';
-import { Formula } from '../models/formula';
+import { MondayColumnType } from '../constants/mondayTypes';
+import errorHandler from '../middlewares/errorHandler';
+import { CustomError } from '../models/Error';
+import { Formula } from '../models/Formula';
+import mondayRepo from '../repositories/monday-repository';
 import { Item } from '../repositories/domain/ItemInformationResponse';
 import { User } from '../repositories/domain/UserInformationResponse';
-import { ColumnTypes } from '../constants/mondayColumnTypes';
+import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
 interface IMondayService {
     applyFormula(formula: string, itemId: number, columnId: string, boardId: number): Promise<boolean>;
@@ -20,7 +23,8 @@ class MondayService implements IMondayService {
         const parsedFormula: Formula = this.parseFormulaStructure(formula);
 
         if (!item || !parsedFormula) {
-            return false;
+            const message: string = "Couldn't get the data necessary to complete the operation.";
+            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
         }
 
         //Build the array of numbers our formula needs
@@ -31,7 +35,7 @@ class MondayService implements IMondayService {
         parsedFormula.values.forEach((formulaValue) => {
             if (formulaValue.includes("{")) {
                 item.column_values.forEach((itemColumn) => {
-                if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && (itemColumn.type === ColumnTypes.NUMBERS || (itemColumn.type === ColumnTypes.LOOKUP && this.isNumeric(itemColumn.text)))) {
+                if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && (itemColumn.type === MondayColumnType.NUMBERS || (itemColumn.type === MondayColumnType.LOOKUP && this.isNumeric(itemColumn.text)))) {
                     numbersArray.push(Number(itemColumn.text)); 
                 } 
             });            
@@ -45,7 +49,8 @@ class MondayService implements IMondayService {
         switch(parsedFormula.operation) {
             case "DIVIDE": {
                 if (parsedFormula.values.length !== 2) {
-                    throw Error("Number of values incorrect for division. Need 2 but found " + parsedFormula.values.length);
+                    const message: string = "Number of values incorrect for division. Need 2 but found " + parsedFormula.values.length;
+                    throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Division not possible", message, message) });
                 }
                 result = mathService.DIVIDE(numbersArray[0], numbersArray[1]);
                 break;
@@ -69,8 +74,8 @@ class MondayService implements IMondayService {
 
         return true;
     } catch (err) {
-        console.log(err);
-        return false;
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayService.applyFormula');
+        throw error;
     }
   }
   async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
@@ -79,7 +84,8 @@ class MondayService implements IMondayService {
         const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
 
         if (!item) {
-            return false;
+            const message: string = `Couldn't get the data from the item with id : ${itemId}.`;
+            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Item's data unavailable", message, message) });
         }
 
         //Search for values to use in new name
@@ -125,11 +131,10 @@ class MondayService implements IMondayService {
 
         //Updating Monday item's name
         await mondayRepo.changeSimpleColumnValue(boardId, itemId, "name", newName);
-
         return true;
     } catch (err) {
-        console.log(err);
-        return false;
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayService.updateItemName');
+        throw error;
     }
   }
 
@@ -188,7 +193,8 @@ class MondayService implements IMondayService {
     const valuesAndColumnIds: RegExpMatchArray | null = formulaStructure.match(idsRegEx);
 
     if (!op || !valuesAndColumnIds || valuesAndColumnIds.length === 0) {
-        throw Error("No data has been received.");
+        const message: string = "Couldn't get the data necessary to complete the operation.";
+        throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
     }
 
     const mathOp: MathOperationType = op[0].substring(0, op[0].length - 1) as MathOperationType;

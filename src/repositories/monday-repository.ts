@@ -1,7 +1,8 @@
 import { Converters } from './domain/converters';
 import { ItemInformationResponse, Item } from './domain/ItemInformationResponse';
 import { UserInformationResponse, User } from './domain/UserInformationResponse';
-
+import errorHandler from '../middlewares/errorHandler';
+import { CustomError } from '../models/Error';
 
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
@@ -22,8 +23,8 @@ class MondayRepository implements IMondayRepository {
             await globalThis.mondayClient.api(query, { variables });
             return true;
         } catch (err) {
-            console.log(err);
-            return false;
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.changeSimpleColumnValue');
+            throw error;
         }
     }
 
@@ -52,7 +53,8 @@ class MondayRepository implements IMondayRepository {
             const response: ItemInformationResponse = await globalThis.mondayClient.api(query, { variables });
             return Converters.convertToItemArray(response)[0];
         } catch (err) {
-            console.log(err);
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
+            throw error;
         }
     }
 
@@ -69,7 +71,8 @@ class MondayRepository implements IMondayRepository {
             const response: UserInformationResponse = await globalThis.mondayClient.api(query, { variables });
             return Converters.convertToUserArray(response)[0];
         } catch (err) {
-            console.log(err);
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getUserInformations');
+            throw error;
         }
     }
 }
