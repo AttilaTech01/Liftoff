@@ -4,21 +4,22 @@ interface IMathService {
     DIVIDE(numerator: number, denominator: number): number;
     MINUS(numbers: number[]): number;
     MULTIPLY(numbers: number[]): number;
+    ROUND(value: number, numberOfDigits: number);
     SUM(numbers: number[]): number;
 }
 
 class MathService implements IMathService {
     DIVIDE(numerator: number, denominator: number): number {
         if (denominator === 0) {
-            throw Error("Division by zero error.");
+            throw new Error("Division by zero error.");
         }
 
-        return numerator / denominator;
+        return this.ROUND(numerator / denominator, 2);
     }
 
     MINUS(numbers: number[]): number {
         if (numbers.length === 0) {
-            throw Error("No data has been found.");
+            return 0;
         }
 
         let result: number = numbers[0];
@@ -29,12 +30,12 @@ class MathService implements IMathService {
             }  
         });
 
-        return result;
+        return this.ROUND(result, 2);
     }
 
     MULTIPLY(numbers: number[]): number {
         if (numbers.length === 0) {
-            throw Error("No data has been found.");
+            return 0;
         }
 
         let result: number = 1;
@@ -42,7 +43,12 @@ class MathService implements IMathService {
             result = result * number;
         });
 
-        return result;
+        return this.ROUND(result, 2);
+    }
+
+    // ONLY USED PRIVATELY FOR THE MOMENT
+    ROUND(value: number, numberOfDigits: number): number {
+        return Number(Math.round(Number(value + 'e' + numberOfDigits)) + 'e' + numberOfDigits * -1); 
     }
 
     SUM(numbers: number[]): number {
@@ -51,7 +57,7 @@ class MathService implements IMathService {
             result = result + number;
         });
 
-        return result;
+        return this.ROUND(result, 2);
     }
 }
 
