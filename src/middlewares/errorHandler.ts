@@ -13,9 +13,9 @@ class ErrorHandler {
             return new CustomError({ httpCode: 500, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, value.message, value.message) });
         }
         else {
-            let stringified: string = '[Unable to stringify the thrown value]'
+            let stringified: string = '[Unable to stringify the thrown value]';
             try {
-                stringified = JSON.stringify(value)
+                stringified = JSON.stringify(value);
             } catch {}
             //LOGGER
             console.log(`This value was thrown as is, not through an Error: ${stringified}`);
@@ -32,15 +32,17 @@ class ErrorHandler {
     }
 
     private handleTrustedError(error: CustomError, response: Response): void {
+        //LOGGER
+        console.log('Application encountered an trusted error.');
         response.status(error.httpCode).send(error.mondayNotification);
     }
 
     private handleUntrustedError(error: Error | CustomError, response?: Response): void {
-        if (response) {
-          response.status(500).json({ message: error.message });
-        }
         //LOGGER
         console.log('Application encountered an untrusted error.');
+        if (response) {
+          response.status(500).send({ message: error.message });
+        }
     }
 }
 
