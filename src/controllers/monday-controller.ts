@@ -5,7 +5,7 @@ import mondayService from '../services/monday-service';
 
 class MondayController {
     //integrationId: 240018139
-    //recipeId : 30172153
+    //recipeId: 30172153
     async applyFormula(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -17,7 +17,7 @@ class MondayController {
             const { inputFields } = payload;
             const { boardId, itemId, formula, columnId } = inputFields;
 
-            await mondayService.applyFormula(formula, itemId, columnId, boardId);
+            await mondayService.applyFormula(boardId, itemId, formula, columnId);
 
             return res.status(200).send({message: 'Formula has been applied successfully'});
         } catch (err) {
@@ -26,8 +26,30 @@ class MondayController {
         }
     }
 
+    //integrationId: 242184509
+    //recipeId: 30175811
+    async copyColumnsContent(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, itemId, sourceColumns, targetColumns } = inputFields;
+
+            await mondayService.copyColumnsContent(boardId, itemId, sourceColumns, targetColumns);
+
+            return res.status(200).send({message: 'Columns have been copied successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayController.copyColumnsContent');
+            next(error);
+        }
+    }
+
     //integrationId: 239133538
-    //recipeId : 30171042
+    //recipeId: 30171042
     async updateItemName(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;

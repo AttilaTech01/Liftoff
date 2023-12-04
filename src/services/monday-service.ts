@@ -4,17 +4,18 @@ import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 import { Formula } from '../models/Formula';
 import mondayRepo from '../repositories/monday-repository';
-import { Item } from '../repositories/domain/ItemInformationResponse';
+import { Column, Item } from '../repositories/domain/ItemInformationResponse';
 import { User } from '../repositories/domain/UserInformationResponse';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
 interface IMondayService {
-    applyFormula(formula: string, itemId: number, columnId: string, boardId: number): Promise<boolean>;
+    applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
+    copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
 class MondayService implements IMondayService {
-  async applyFormula(formula: string, itemId: number, columnId: string, boardId: number): Promise<boolean> {
+  async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
     try {
         //Get infos from item
         const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
@@ -78,6 +79,37 @@ class MondayService implements IMondayService {
         throw error;
     }
   }
+
+  async copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean> {
+    try {
+        const sourceIds: string[] = this.getColumnIdsFromCodes(sourceColumns);
+        const targetIds: string[] = this.getColumnIdsFromCodes(targetColumns);
+
+        if (sourceIds.length != targetIds.length) {
+            const message: string = "Received " + sourceIds.length + " source column ids and " + targetIds.length + " target column ids. Each source must be matched to one target.";
+            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Parameters received are incorrect", message, message) });
+        }
+
+        const item: Item = await mondayRepo.getItemInformations(itemId);
+
+        sourceIds.forEach(async (sourceId, index) => {
+            const columnToCopy: Column | undefined = item.column_values.find(column => column.id === sourceId);
+
+            if (columnToCopy == undefined) {
+                const message: string = "The value of column with id " + sourceId + " couldn't be obtained.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Value is missing", message, message) });
+            }
+
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, targetIds[index], columnToCopy.text);
+        });
+
+        return true;
+    } catch (err) {
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayService.copyColumnsContent');
+        throw error;
+    }
+  }
+
   async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
     try {  
         //Get infos from item
@@ -141,12 +173,31 @@ class MondayService implements IMondayService {
   /**
     * {pulse.number5}
     * RETURNS
-    * number5
+    * "number5"
     */
   private getColumnIdFromCode(code: string): string {
     const columnId = code.substring(code.indexOf('.')+1, code.lastIndexOf('}'));
     return columnId;
   }  
+
+  /**
+    * $(){pulse.number5}123{pulse.text2}XX{pulse.text45}
+    * RETURNS
+    * ["number5", "text2", "text45"]
+    */
+  private getColumnIdsFromCodes(codes: string): string[] {
+    const regEx = new RegExp("{([^{]*?)}", 'g');
+    let columnIds = codes.match(regEx);
+    let arrayToReturn: string[] = [];
+
+    if (columnIds == null) return arrayToReturn;
+
+    columnIds.forEach((element) => {
+        arrayToReturn.push(this.getColumnIdFromCode(element));
+    });
+    
+    return arrayToReturn;
+  }
 
   /**
     * "10" || "123.78" || "test"

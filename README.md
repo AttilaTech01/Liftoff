@@ -35,3 +35,14 @@ $ yarn install
 ```
 $ npm start
 ```
+
+## Monday Recipes
+
+1. Math Formula
+
+2. Item renaming
+
+3. Copying the content of columns
+   Params : Board Id, Item Id, Source Column Ids, Target Column Ids
+   Restrictions : Source Columns can be mirror or not, Number must point to Number, Text must point to Text, The order of the column ids indicates where to copy the content.
+   Result : Copy the content of the source columns into the target columns.

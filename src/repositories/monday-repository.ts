@@ -28,7 +28,7 @@ class MondayRepository implements IMondayRepository {
         }
     }
 
-    async getItemInformations(itemId: number): Promise<Item | undefined> {
+    async getItemInformations(itemId: number): Promise<Item> {
         try {
             const query = `query ($itemId: [Int]) {
                 items (ids: $itemId) {
@@ -58,7 +58,7 @@ class MondayRepository implements IMondayRepository {
         }
     }
 
-    async getUserInformations(userId: number): Promise<User | undefined> {
+    async getUserInformations(userId: number): Promise<User> {
         try {
             const query = `query ($userId: [Int]) {
                 users (ids: $userId, limit: 1) {
