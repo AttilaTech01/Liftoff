@@ -6,7 +6,8 @@ import { CustomError } from '../models/Error';
 
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
-    getItemInformations(itemId: number);
+    getItemInformations(itemId: number): Promise<Item>;
+    getUserInformations(userId: number): Promise<User>;
 }
   
 class MondayRepository implements IMondayRepository {

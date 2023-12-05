@@ -48,6 +48,10 @@ class MondayService implements IMondayService {
         //Execute the right formula with the found values
         let result: number = 0;
         switch(parsedFormula.operation) {
+            case "AVERAGE": {
+                result = mathService.AVERAGE(numbersArray);
+                break;
+            }
             case "DIVIDE": {
                 if (parsedFormula.values.length !== 2) {
                     const message: string = "Number of values incorrect for division. Need 2 but found " + parsedFormula.values.length;
@@ -56,12 +60,24 @@ class MondayService implements IMondayService {
                 result = mathService.DIVIDE(numbersArray[0], numbersArray[1]);
                 break;
             }
+            case "MAX": {
+                result = mathService.MAX(numbersArray);
+                break;
+            }
+            case "MIN": {
+                result = mathService.MIN(numbersArray);
+                break;
+            }
             case "MINUS": {
                 result = mathService.MINUS(numbersArray);
                 break;
             }
             case "MULTIPLY": {
                 result = mathService.MULTIPLY(numbersArray);
+                break;
+            }
+            case "POWER": {
+                result = mathService.POWER(numbersArray[0], numbersArray[1]);
                 break;
             }
             case "SUM": {
