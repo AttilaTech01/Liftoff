@@ -18,7 +18,7 @@ class MondayService implements IMondayService {
   async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
     try {
         //Get infos from item
-        const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
+        const item: Item = await mondayRepo.getItemInformations(itemId);
         
         //Parse the formula : getting the values and column ids to use
         const parsedFormula: Formula = this.parseFormulaStructure(formula);
@@ -131,11 +131,6 @@ class MondayService implements IMondayService {
         //Get infos from item
         const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
 
-        if (!item) {
-            const message: string = `Couldn't get the data from the item with id : ${itemId}.`;
-            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Item's data unavailable", message, message) });
-        }
-
         //Search for values to use in new name
         const untrimmedColumnIds: string[] = this.parseNameStructure(value);
 
@@ -146,8 +141,8 @@ class MondayService implements IMondayService {
 
             switch(untrimmedColumnIds[index]) { 
                 case "{user.name}": { 
-                    const user: User | undefined = await mondayRepo.getUserInformations(userId);
-                    if (user) {
+                    const user: User = await mondayRepo.getUserInformations(userId);
+                    if (user.name) {
                         newName = newName.replace(regEx, user.name); 
                     } else {
                         newName = newName.replace(regEx, "N/A"); 
@@ -170,6 +165,8 @@ class MondayService implements IMondayService {
                     for (let itemColumnIndex in item.column_values) {
                         if (item.column_values[itemColumnIndex].id === this.getColumnIdFromCode(regEx.toString())) {
                             newName = newName.replace(regEx, item.column_values[itemColumnIndex].text); 
+                        } else {
+                            newName = newName.replace(regEx, "N/A"); 
                         }
                     }
                     break; 

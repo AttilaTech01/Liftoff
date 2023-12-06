@@ -2,6 +2,7 @@ import { ItemInformationResponse, Item, Board, Group, Column } from './ItemInfor
 import { UserInformationResponse, User } from './UserInformationResponse';
 
 export class Converters {
+    // Item
     public static convertToItemArray(response: ItemInformationResponse): Item[] {
         return response.data.items.map(item => Converters.convertToItem(item));
     }
@@ -36,6 +37,7 @@ export class Converters {
         };
     }
 
+    // User
     public static convertToUserArray(response: UserInformationResponse): User[] {
         return response.data.users.map(user => Converters.convertToUser(user));
     }
