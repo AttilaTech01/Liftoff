@@ -1,13 +1,12 @@
 {
-  "name": "monday-elevate",
-  "version": "0.0.1",
+  "name": "liftoff",
+  "version": "1.0.0",
   "license": "UNLICENSED",
   "scripts": {
     "dev": "yarn stop && concurrently \"yarn dev-server\" \"yarn expose\"",
     "dev-server": "ts-node-dev --watch ./.env ./src/app.ts",
     "start": "yarn server",
     "server": "nodemon ./src/app.ts",
-    "expose": "mtunnel -p 6060",
     "stop": "kill-port 6060 && kill-port 4049 && kill-port 4040",
     "test": "jest"
   },
@@ -16,25 +15,19 @@
     "dotenv": "^5.0.1",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
-    "monday-sdk-js": "^0.1.4",
-    "querystring": "^0.2.0"
+    "monday-sdk-js": "^0.1.4"
   },
   "devDependencies": {
-    "@mondaydotcomorg/tunnel": "^0.4.1",
     "@types/express": "^4.17.9",
     "@types/jest": "^29.5.10",
     "@types/jsonwebtoken": "^8.5.0",
-    "chai": "^4.1.2",
     "concurrently": "^5.2.0",
     "cross-port-killer": "^1.2.1",
     "debug": "~2.6.9",
     "eslint": "^v6.8.0",
     "jest": "^29.7.0",
-    "mocha": "^5.0.4",
     "mock-require": "^3.0.1",
     "nodemon": "^2.0.22",
-    "nyc": "^12.0.2",
-    "sinon": "^7.4.2",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
