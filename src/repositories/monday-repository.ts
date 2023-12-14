@@ -1,12 +1,16 @@
 import { Converters } from './domain/converters';
+//import { BoardInformationResponse, Board } from './domain/BoardInformationResponse';
 import { ItemInformationResponse, Item } from './domain/ItemInformationResponse';
+//import { SubitemInformationResponse, Subitem } from './domain/SubitemInformationResponse';
 import { UserInformationResponse, User } from './domain/UserInformationResponse';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
+    //getBoardInformations(boardId: number): Promise<Board>;
     getItemInformations(itemId: number): Promise<Item>;
+    //getSubitemsFromItem(itemId: number): Promise<Subitem[]>;
     getUserInformations(userId: number): Promise<User>;
 }
   
@@ -28,6 +32,31 @@ class MondayRepository implements IMondayRepository {
             throw error;
         }
     }
+
+    /*
+    async getBoardInformations(boardId: number): Promise<Board> {
+        try {
+            const query = `query ($boardId: [Int]) {
+                boards (ids: $boardId) {
+                    columns {
+                        id
+                        title
+                        type
+                        settings_str
+                    }
+                }
+            }
+            `;
+            const variables = { boardId };
+
+            const response: BoardInformationResponse = await globalThis.mondayClient.api(query, { variables });
+            return Converters.convertToBoardArray(response)[0];
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
+            throw error;
+        }
+    }
+    */
 
     async getItemInformations(itemId: number): Promise<Item> {
         try {
@@ -58,6 +87,34 @@ class MondayRepository implements IMondayRepository {
             throw error;
         }
     }
+
+    /*
+    async getSubitemsFromItem(itemId: number): Promise<Subitem[]> {
+        try {
+            const query = `query ($itemId: [Int]) {
+                items (ids: $itemId) {
+                    subitems {
+                        id
+                        name
+                        column_values {
+                            id
+                            title
+                            text
+                        }
+                    }
+                }
+            }
+            `;
+            const variables = { itemId };
+
+            const response: SubitemInformationResponse = await globalThis.mondayClient.api(query, { variables });
+            return Converters.convertToSubitemArray(response);
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getSubitemsFromItem');
+            throw error;
+        }
+    }
+    */
 
     async getUserInformations(userId: number): Promise<User> {
         try {

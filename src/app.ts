@@ -16,6 +16,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, res);
 });
 
-app.listen(port, () => console.log(`monday-elevate is listening at http://localhost:${port}`));
+app.listen(port, () => console.log(`Liftoff is listening at http://localhost:${port}`));
 
 export default app;

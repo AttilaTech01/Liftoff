@@ -12,7 +12,7 @@ Liftoff - by [**Attila Technologies**](https://www.attila-technologies.com/)
 
 3. Copying the content of columns
    <br>**Params** : Board Id, Item Id, Source Column Ids, Target Column Ids
-   <br>**Restrictions** : Source Columns can be mirror or not, Number must point to Number, Text must point to Text, The order of the column ids indicates where to copy the content.
+   <br>**Restrictions** : Source Columns can be mirror or not, Number must point to Number, Text must point to Text, The order of the column ids indicates where to copy the content. Target Columns cant be mirror.
    <br>**Result** : Copy the content of the source columns into the target columns.
 
 # Developper Mode
@@ -35,7 +35,12 @@ $ yarn install
 1. Add your MONDAY_SIGNING_SECRET to .env file
    <br> \*\* To get your MONDAY_SIGNING_SECRET go to monday.com, open Developers section, open your app and find the Signing Secret in "Basic Information" section
 2. Add PORT=6060 to env. file
-3. Run the server with ngrok tunnel with the command: ngrok http --domain=probable-pelican-infinitely.ngrok-free.app 6060
+3. Run the server with ngrok tunnel with the command:
+
+```
+ngrok http --domain=probable-pelican-infinitely.ngrok-free.app 6060
+```
+
 4. Finally, run :
 
 ```

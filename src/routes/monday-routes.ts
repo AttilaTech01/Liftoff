@@ -1,19 +1,25 @@
 import {Router} from 'express';
-import mondayController from '../controllers/monday-controller';
+import mondayActionController from '../controllers/monday-action-controller';
+//import mondayGetterController from '../controllers/monday-getter-controller';
 import authenticationMiddleware from '../middlewares/authentication';
 
 const router = Router();
+//FORMULAS
+//integrationId: 240018139, 245343033
+//recipeId : 30172153, 30180577
+router.post('/apply-formula', authenticationMiddleware, mondayActionController.applyFormula);
 
-//integrationId: 240018139
-//recipeId : 30172153
-router.post('/apply-formula', authenticationMiddleware, mondayController.applyFormula);
+//COPY CONTENT
+//integrationId: 242184509, 245096112
+//recipeId: 30175811, 30180045
+router.post('/copy-columns-content', authenticationMiddleware, mondayActionController.copyColumnsContent);
 
-//integrationId: 242184509
-//recipeId: 30175811
-router.post('/copy-columns-content', authenticationMiddleware, mondayController.copyColumnsContent);
+//ITEM RENAMING
+//integrationId: 239133538, 245268407
+//recipeId: 30171042, 30180578
+router.post('/rename-item', authenticationMiddleware, mondayActionController.updateItemName);
 
-//integrationId: 239133538
-//recipeId: 30171042
-router.post('/rename-item', authenticationMiddleware, mondayController.updateItemName);
+//------------------------------------------------------------------------------------------------------------
+//GETTERS
 
 export default router;

@@ -1,5 +1,5 @@
 import mathService from '../math-service';
-import mondayService from '../monday-service';
+import mondayService from '../monday-action-service';
 import { MondayColumnType } from '../../constants/mondayTypes';
 import { CustomError } from '../../models/Error';
 import mondayRepo from '../../repositories/monday-repository';

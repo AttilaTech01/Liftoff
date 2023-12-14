@@ -4,17 +4,17 @@ import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 import { Formula } from '../models/Formula';
 import mondayRepo from '../repositories/monday-repository';
-import { Column, Item } from '../repositories/domain/ItemInformationResponse';
+import { ItemColumn, Item } from '../repositories/domain/ItemInformationResponse';
 import { User } from '../repositories/domain/UserInformationResponse';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
-interface IMondayService {
+interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
-class MondayService implements IMondayService {
+class MondayActionService implements IMondayActionService {
   async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
     try {
         //Get infos from item
@@ -91,7 +91,7 @@ class MondayService implements IMondayService {
 
         return true;
     } catch (err) {
-        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayService.applyFormula');
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
         throw error;
     }
   }
@@ -109,7 +109,7 @@ class MondayService implements IMondayService {
         const item: Item = await mondayRepo.getItemInformations(itemId);
 
         sourceIds.forEach(async (sourceId, index) => {
-            const columnToCopy: Column | undefined = item.column_values.find(column => column.id === sourceId);
+            const columnToCopy: ItemColumn | undefined = item.column_values.find(column => column.id === sourceId);
 
             if (columnToCopy == undefined) {
                 const message: string = "The value of column with id " + sourceId + " couldn't be obtained.";
@@ -121,7 +121,7 @@ class MondayService implements IMondayService {
 
         return true;
     } catch (err) {
-        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayService.copyColumnsContent');
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.copyColumnsContent');
         throw error;
     }
   }
@@ -143,7 +143,7 @@ class MondayService implements IMondayService {
                 case "{user.name}": { 
                     const user: User = await mondayRepo.getUserInformations(userId);
                     if (user.name) {
-                        newName = newName.replace(regEx, user.name); 
+                        newName = newName.replace(regEx, user.name);
                     } else {
                         newName = newName.replace(regEx, "N/A"); 
                     }
@@ -164,8 +164,8 @@ class MondayService implements IMondayService {
                 default: { 
                     for (let itemColumnIndex in item.column_values) {
                         if (item.column_values[itemColumnIndex].id === this.getColumnIdFromCode(regEx.toString())) {
-                            newName = newName.replace(regEx, item.column_values[itemColumnIndex].text); 
-                        } else {
+                            newName = newName.replace(regEx, item.column_values[itemColumnIndex].text);
+                        } else if (item.column_values.length === Number(itemColumnIndex) + 1) {
                             newName = newName.replace(regEx, "N/A"); 
                         }
                     }
@@ -178,7 +178,7 @@ class MondayService implements IMondayService {
         await mondayRepo.changeSimpleColumnValue(boardId, itemId, "name", newName);
         return true;
     } catch (err) {
-        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayService.updateItemName');
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.updateItemName');
         throw error;
     }
   }
@@ -266,4 +266,4 @@ class MondayService implements IMondayService {
   }
 }
 
-export default new MondayService;
+export default new MondayActionService;

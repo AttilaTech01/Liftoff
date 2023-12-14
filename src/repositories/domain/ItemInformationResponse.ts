@@ -10,12 +10,12 @@ export interface ItemInformationResponse {
 export interface Item {
     id: string;
     name: string;
-    board: Board;
+    board: ItemBoard;
     group: Group;
-    column_values: Column[];
+    column_values: ItemColumn[];
 }
 
-export interface Board {
+export interface ItemBoard {
     name: string;
 }
 
@@ -23,7 +23,7 @@ export interface Group {
     title: string;
 }
 
-export interface Column {
+export interface ItemColumn {
     id: string;
     text: string;
     type: MondayColumnType;

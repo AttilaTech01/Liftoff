@@ -1,5 +1,5 @@
 import { Converters } from '../converters';
-import { ItemInformationResponse, Item, Board, Group, Column } from '../ItemInformationResponse';
+import { ItemInformationResponse, Item } from '../ItemInformationResponse';
 import { UserInformationResponse, User } from '../UserInformationResponse';
 import { MondayColumnType } from '../../../constants/mondayTypes';
 

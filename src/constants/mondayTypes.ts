@@ -1,3 +1,9 @@
+//CUSTOM ACTION/TRIGGERS
+export type CustomTypeListItem = {
+    title: string;
+    value: string;
+};
+
 //ERROR HANDLING
 export type SeverityCode = 4000 | 6000;
 
@@ -14,8 +20,12 @@ export type MondayError = {
 export enum MondayColumnType {
     BUTTON = "button",
     COLOR = "color",
+    DATE = "date",
     LOOKUP = "lookup",
+    MULTIPLE_PERSON = "multiple-person",
+    NAME = "name",
     NUMBERS = "numeric",
+    SUBTASKS = "subtasks",
     TEXT = "text",
     TIMERANGE = "timerange",
 }
