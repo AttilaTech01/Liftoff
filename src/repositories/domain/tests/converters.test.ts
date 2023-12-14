@@ -1,6 +1,8 @@
 import { Converters } from '../converters';
-import { ItemInformationResponse, Item } from '../ItemInformationResponse';
-import { UserInformationResponse, User } from '../UserInformationResponse';
+import { Item } from '../Item';
+import { ItemInformationResponse } from '../ItemInformationResponse';
+import { User } from '../User';
+import { UserInformationResponse } from '../UserInformationResponse';
 import { MondayColumnType } from '../../../constants/mondayTypes';
 
 const itemInfoResponse: ItemInformationResponse = {

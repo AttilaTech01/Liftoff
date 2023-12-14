@@ -3,8 +3,8 @@ import mondayService from '../monday-action-service';
 import { MondayColumnType } from '../../constants/mondayTypes';
 import { CustomError } from '../../models/Error';
 import mondayRepo from '../../repositories/monday-repository';
-import { Item } from '../../repositories/domain/ItemInformationResponse';
-import { User } from '../../repositories/domain/UserInformationResponse';
+import { Item } from '../../repositories/domain/Item';
+import { User } from '../../repositories/domain/User';
 
 const mockItem: Item = {
     id: 'id', 

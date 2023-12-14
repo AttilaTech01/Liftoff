@@ -4,8 +4,9 @@ import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 import { Formula } from '../models/Formula';
 import mondayRepo from '../repositories/monday-repository';
-import { ItemColumn, Item } from '../repositories/domain/ItemInformationResponse';
-import { User } from '../repositories/domain/UserInformationResponse';
+import { Column } from '../repositories/domain/Column';
+import { Item } from '../repositories/domain/Item';
+import { User } from '../repositories/domain/User';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
 interface IMondayActionService {
@@ -35,8 +36,8 @@ class MondayActionService implements IMondayActionService {
         let numbersArray: number[] = [];
         parsedFormula.values.forEach((formulaValue) => {
             if (formulaValue.includes("{")) {
-                item.column_values.forEach((itemColumn) => {
-                if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && (itemColumn.type === MondayColumnType.NUMBERS || (itemColumn.type === MondayColumnType.LOOKUP && this.isNumeric(itemColumn.text)))) {
+                item.column_values?.forEach((itemColumn) => {
+                if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && (itemColumn.type === MondayColumnType.NUMBERS || (itemColumn.type === MondayColumnType.LOOKUP && itemColumn.text && this.isNumeric(itemColumn.text)))) {
                     numbersArray.push(Number(itemColumn.text)); 
                 } 
             });            
@@ -109,9 +110,9 @@ class MondayActionService implements IMondayActionService {
         const item: Item = await mondayRepo.getItemInformations(itemId);
 
         sourceIds.forEach(async (sourceId, index) => {
-            const columnToCopy: ItemColumn | undefined = item.column_values.find(column => column.id === sourceId);
+            const columnToCopy: Column | undefined = item.column_values?.find(column => column.id === sourceId);
 
-            if (columnToCopy == undefined) {
+            if (columnToCopy == undefined || columnToCopy.text == undefined) {
                 const message: string = "The value of column with id " + sourceId + " couldn't be obtained.";
                 throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Value is missing", message, message) });
             }
@@ -130,6 +131,11 @@ class MondayActionService implements IMondayActionService {
     try {  
         //Get infos from item
         const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
+
+        if (item == undefined) {
+            const message: string = "Couldn't get the data necessary to complete the operation.";
+            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+        }
 
         //Search for values to use in new name
         const untrimmedColumnIds: string[] = this.parseNameStructure(value);
@@ -150,15 +156,15 @@ class MondayActionService implements IMondayActionService {
                     break; 
                 } 
                 case "{board.name}": {
-                    newName = newName.replace(regEx, item.board.name);  
+                    if (item.board?.name) newName = newName.replace(regEx, item.board.name);  
                     break; 
                 } 
                 case "{pulse.group}": { 
-                    newName = newName.replace(regEx, item.group.title); 
+                    if (item.group?.title) newName = newName.replace(regEx, item.group.title); 
                     break; 
                  } 
                  case "{pulse.name}": { 
-                    newName = newName.replace(regEx, item.name); 
+                    if (item.name) newName = newName.replace(regEx, item.name); 
                     break; 
                  } 
                 default: { 

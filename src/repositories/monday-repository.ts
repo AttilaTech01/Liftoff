@@ -1,8 +1,10 @@
 import { Converters } from './domain/converters';
 //import { BoardInformationResponse, Board } from './domain/BoardInformationResponse';
-import { ItemInformationResponse, Item } from './domain/ItemInformationResponse';
+import { Item } from './domain/Item';
+import { ItemInformationResponse } from './domain/ItemInformationResponse';
 //import { SubitemInformationResponse, Subitem } from './domain/SubitemInformationResponse';
-import { UserInformationResponse, User } from './domain/UserInformationResponse';
+import { User } from './domain/User';
+import { UserInformationResponse } from './domain/UserInformationResponse';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 
