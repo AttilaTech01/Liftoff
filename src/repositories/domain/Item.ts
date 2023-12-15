@@ -1,6 +1,6 @@
-import { Board } from './Board';
-import { Column } from './Column';
-import { Group } from './Group';
+import { Board, BoardConverter } from './Board';
+import { Column, ColumnConverter } from './Column';
+import { Group, GroupConverter } from './Group';
 import { Subitem } from './Subitem';
 
 export interface Item {
@@ -10,4 +10,16 @@ export interface Item {
     id?: string;
     name?: string;
     subitems?: Subitem[];
+}
+
+export class ItemConverter {
+    public static convertToItem(data: any): Item {
+        return {
+            id: data["id"],
+            name: data["name"],
+            board: BoardConverter.convertToBoard(data["board"]),
+            group: GroupConverter.convertToGroup(data["group"]),
+            column_values: data["column_values"].map(column => ColumnConverter.convertToColumn(column))
+        };
+    }
 }

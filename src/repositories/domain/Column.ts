@@ -8,6 +8,16 @@ export interface Column {
     settings_str?: SettingsStr;
 }
 
+export class ColumnConverter {
+    public static convertToColumn(data: any): Column {
+        return {
+            id: data["id"],
+            text: data["text"],
+            type: data["type"]
+        };
+    }
+}
+
 export interface SettingsStr {
     allowMultipleItems?: boolean;
     itemTypeName?: string;
