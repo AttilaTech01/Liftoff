@@ -1,7 +1,7 @@
 import initMondayClient from 'monday-sdk-js';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
-import mondayService from '../services/monday-action-service';
+import mondayActionService from '../services/monday-action-service';
 
 class MondayActionController {
     //integrationId: 240018139, 245343033
@@ -17,11 +17,34 @@ class MondayActionController {
             const { inputFields } = payload;
             const { boardId, itemId, formula, columnId } = inputFields;
 
-            await mondayService.applyFormula(boardId, itemId, formula, columnId);
+            await mondayActionService.applyFormula(boardId, itemId, formula, columnId);
 
             return res.status(200).send({message: 'Formula has been applied successfully'});
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.applyFormula');
+            next(error);
+        }
+    }
+
+    //integrationId: 245738684
+    //recipeId: 30181398
+    async checkDuplicates(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            globalThis.mondayClient.setApiVersion("2023-10");
+            
+            const { inputFields } = payload;
+            const { boardId, itemId, statusColumnId, statusColumnValue, verifiedColumnId } = inputFields;
+
+            await mondayActionService.checkDuplicates(boardId, itemId, statusColumnId, statusColumnValue, verifiedColumnId);
+
+            return res.status(200).send({message: 'Duplicates have been checked successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.checkDuplicates');
             next(error);
         }
     }
@@ -39,7 +62,7 @@ class MondayActionController {
             const { inputFields } = payload;
             const { boardId, itemId, sourceColumns, targetColumns } = inputFields;
 
-            await mondayService.copyColumnsContent(boardId, itemId, sourceColumns, targetColumns);
+            await mondayActionService.copyColumnsContent(boardId, itemId, sourceColumns, targetColumns);
 
             return res.status(200).send({message: 'Columns have been copied successfully'});
         } catch (err) {
@@ -61,7 +84,7 @@ class MondayActionController {
             const { inputFields } = payload;
             const { boardId, itemId, nameNewValue, userId } = inputFields;
 
-            await mondayService.updateItemName(boardId, itemId, nameNewValue, userId);
+            await mondayActionService.updateItemName(boardId, itemId, nameNewValue, userId);
 
             return res.status(200).send({message: 'Name has been updated successfully'});
         } catch (err) {

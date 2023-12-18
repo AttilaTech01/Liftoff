@@ -1,8 +1,10 @@
+import { Board } from './domain/Board';
+import { BoardInformationResponse, BoardInformationResponseConverter } from './domain/BoardInformationResponse';
 import { Converters } from './domain/converters';
-//import { BoardInformationResponse, Board } from './domain/BoardInformationResponse';
 import { Item } from './domain/Item';
 import { ItemInformationResponse } from './domain/ItemInformationResponse';
-//import { SubitemInformationResponse, Subitem } from './domain/SubitemInformationResponse';
+import { ItemsPage } from './domain/ItemsPage';
+import { ItemsPageResponse, ItemsPageResponseConverter } from './domain/ItemsPageResponse';
 import { User } from './domain/User';
 import { UserInformationResponse } from './domain/UserInformationResponse';
 import errorHandler from '../middlewares/errorHandler';
@@ -10,16 +12,16 @@ import { CustomError } from '../models/Error';
 
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
-    //getBoardInformations(boardId: number): Promise<Board>;
     getItemInformations(itemId: number): Promise<Item>;
-    //getSubitemsFromItem(itemId: number): Promise<Subitem[]>;
+    getItemsFromBoardId(boardId: number): Promise<Board>;
+    getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage>;
     getUserInformations(userId: number): Promise<User>;
 }
   
 class MondayRepository implements IMondayRepository {
     async changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean> {
         try {
-            const query = `mutation ($boardId: Int!, $itemId: Int!, $columnId: String!, $value: String!) {
+            const query = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) {
                 change_simple_column_value (board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) {
                 id
                 }
@@ -27,38 +29,14 @@ class MondayRepository implements IMondayRepository {
             `;
             const variables = { boardId, columnId, itemId, value };
 
-            await globalThis.mondayClient.api(query, { variables });
+            const response = await globalThis.mondayClient.api(query, { variables });
+            console.log(response);
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.changeSimpleColumnValue');
             throw error;
         }
     }
-
-    /*
-    async getBoardInformations(boardId: number): Promise<Board> {
-        try {
-            const query = `query ($boardId: [Int]) {
-                boards (ids: $boardId) {
-                    columns {
-                        id
-                        title
-                        type
-                        settings_str
-                    }
-                }
-            }
-            `;
-            const variables = { boardId };
-
-            const response: BoardInformationResponse = await globalThis.mondayClient.api(query, { variables });
-            return Converters.convertToBoardArray(response)[0];
-        } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
-            throw error;
-        }
-    }
-    */
 
     async getItemInformations(itemId: number): Promise<Item> {
         try {
@@ -89,34 +67,60 @@ class MondayRepository implements IMondayRepository {
             throw error;
         }
     }
-
-    /*
-    async getSubitemsFromItem(itemId: number): Promise<Subitem[]> {
+    
+    async getItemsFromBoardId(boardId: number): Promise<Board> {
         try {
-            const query = `query ($itemId: [Int]) {
-                items (ids: $itemId) {
-                    subitems {
+            const query = `query ($boardId: [ID!]) {
+                boards (ids: $boardId) {
+                    items_page (limit: 3) {
+                        cursor
+                        items {
+                            id
+                            name
+                            column_values {
+                                id
+                                text
+                            }
+                        }
+                    }
+                }
+            }
+            `;
+            const variables = { boardId };
+
+            const response: BoardInformationResponse = await globalThis.mondayClient.api(query, { variables });
+            return BoardInformationResponseConverter.convertToBoardArray(response)[0];
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemsFromBoardId');
+            throw error;
+        }
+    }
+    
+    async getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage> {
+        try {
+            const query = `query ($cursor: String!) {
+                next_items_page (limit: 3, cursor: $cursor) {
+                    cursor
+                    items {
                         id
                         name
                         column_values {
                             id
-                            title
                             text
                         }
                     }
                 }
             }
             `;
-            const variables = { itemId };
+            const variables = { cursor };
 
-            const response: SubitemInformationResponse = await globalThis.mondayClient.api(query, { variables });
-            return Converters.convertToSubitemArray(response);
+            const response: ItemsPageResponse = await globalThis.mondayClient.api(query, { variables });
+            return ItemsPageResponseConverter.convertToItemsPage(response);
         } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getSubitemsFromItem');
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
             throw error;
         }
     }
-    */
 
     async getUserInformations(userId: number): Promise<User> {
         try {

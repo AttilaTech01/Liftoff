@@ -9,7 +9,7 @@ class ErrorHandler {
         } 
         else if (value instanceof Error) {
             //LOGGER
-            console.log(`Error with name ${value.name} has occurred in ${location}. Message : ${value.message}`);
+            console.log(`Error with name ${value.name} has occurred in ${location}.\n Message : ${value.message}. \n Stack trace : ${value.stack}`);
             return new CustomError({ httpCode: 500, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, value.message, value.message) });
         }
         else {
@@ -33,7 +33,7 @@ class ErrorHandler {
 
     private handleTrustedError(error: CustomError, response: Response): void {
         //LOGGER
-        console.log('Application encountered an trusted error.');
+        console.log('Application encountered a trusted error.');
         response.status(error.httpCode).send(error.mondayNotification);
     }
 

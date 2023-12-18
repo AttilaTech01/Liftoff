@@ -3,9 +3,9 @@ export interface Group {
 }
 
 export class GroupConverter {
-    public static convertToGroup(data: any): Group {
+    public static convertToGroup(data: Group): Group {
         return {
-            title: data["title"],
+            title: data.title,
         };
     }
 }

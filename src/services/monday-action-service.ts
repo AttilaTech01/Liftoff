@@ -1,16 +1,20 @@
 import mathService, { MathOperationType } from './math-service';
-import { MondayColumnType } from '../constants/mondayTypes';
+import { MondayColumnType, StatusColumnValue } from '../constants/mondayTypes';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 import { Formula } from '../models/Formula';
+import { SimpleItem } from '../models/SimpleItem';
 import mondayRepo from '../repositories/monday-repository';
+import { Board } from '../repositories/domain/Board';
 import { Column } from '../repositories/domain/Column';
 import { Item } from '../repositories/domain/Item';
+import { ItemsPage } from '../repositories/domain/ItemsPage';
 import { User } from '../repositories/domain/User';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
 interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
+    checkDuplicates(boardId: number, itemId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
@@ -93,6 +97,65 @@ class MondayActionService implements IMondayActionService {
         return true;
     } catch (err) {
         const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
+        throw error;
+    }
+  }
+
+  async checkDuplicates(boardId: number, itemId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean> {
+    try {
+        //Get items from a board
+        const response: Board = await mondayRepo.getItemsFromBoardId(boardId);
+
+        if (response.items_page == undefined || response.items_page.items == undefined) {
+            const message: string = "Couldn't get the data necessary to complete the operation.";
+            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+        }
+
+        //Building simpler arrays to compare
+        let simpleItemsToCompare: SimpleItem[] = [];
+        let columnValues: string[] = [];
+        response.items_page.items.forEach(item => {
+            const columnToCompare: Column | undefined = item.column_values?.find(column => column.id === verifiedColumnId);
+            if (item.id && columnToCompare?.text) {
+                columnValues.push(columnToCompare.text);
+                simpleItemsToCompare.push({ id: item.id, value: columnToCompare.text });
+            }
+        })
+
+        //Iterate on cursor value (pagination) and get all items from board
+        let currentCursor: string | undefined = response.items_page.cursor;
+        while (currentCursor != undefined) {
+            const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursor(currentCursor);
+            cursorResponse.items?.forEach(item => {
+                const columnToCompare: Column | undefined = item.column_values?.find(column => column.id === verifiedColumnId);
+                if (item.id && columnToCompare?.text) {
+                    columnValues.push(columnToCompare.text);
+                    simpleItemsToCompare.push({ id: item.id, value: columnToCompare.text });
+                }
+            });
+            currentCursor = cursorResponse.cursor;
+        }
+
+        //Find duplicate values
+        const uniqueElements = new Set(columnValues);
+        const duplicateValues: string[] = columnValues.filter(value => {
+            if (uniqueElements.has(value)) {
+                uniqueElements.delete(value);
+            } else {
+                return value;
+            }
+        });
+
+        //Update status if value of item is a duplicate
+        simpleItemsToCompare.forEach(async (simpleItem) => {
+            if (duplicateValues.includes(simpleItem.value)) {
+                await mondayRepo.changeSimpleColumnValue(boardId, Number(simpleItem.id), statusColumnId, String(statusColumnValue.index));
+            }
+        });
+
+        return true;
+    } catch (err) {
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDuplicates');
         throw error;
     }
   }
@@ -269,7 +332,7 @@ class MondayActionService implements IMondayActionService {
 
     const mathOp: MathOperationType = op[0].substring(0, op[0].length - 1) as MathOperationType;
     return { operation: mathOp, values: valuesAndColumnIds };
-  }
+  }  
 }
 
 export default new MondayActionService;

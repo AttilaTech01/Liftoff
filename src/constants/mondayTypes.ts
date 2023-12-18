@@ -29,3 +29,8 @@ export enum MondayColumnType {
     TEXT = "text",
     TIMERANGE = "timerange",
 }
+
+export type StatusColumnValue = {
+    index: number;
+    invalid: boolean;
+};

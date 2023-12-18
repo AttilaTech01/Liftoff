@@ -14,6 +14,11 @@ router.post('/apply-formula', authenticationMiddleware, mondayActionController.a
 //recipeId: 30175811, 30180045
 router.post('/copy-columns-content', authenticationMiddleware, mondayActionController.copyColumnsContent);
 
+//GROUP ACTIONS
+//integrationId: 245738684
+//recipeId: 30181398
+router.post('/check-duplicates', authenticationMiddleware, mondayActionController.checkDuplicates);
+
 //ITEM RENAMING
 //integrationId: 239133538, 245268407
 //recipeId: 30171042, 30180578

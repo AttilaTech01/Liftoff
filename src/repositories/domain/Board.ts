@@ -6,10 +6,10 @@ export interface Board {
 }
 
 export class BoardConverter {
-    public static convertToBoard(data: any): Board {
+    public static convertToBoard(data: Board): Board {
         return {
-            name: data["name"],
-            items_page: ItemsPageConverter.convertToItemsPage(data["items_page"]),
+            name: data?.name,
+            items_page: data.items_page ? ItemsPageConverter.convertToItemsPage(data.items_page) : undefined,
         };
     }
 }

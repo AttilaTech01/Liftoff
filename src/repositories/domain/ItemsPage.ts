@@ -6,10 +6,10 @@ export interface ItemsPage {
 }
 
 export class ItemsPageConverter {
-    public static convertToItemsPage(data: any): ItemsPage {
+    public static convertToItemsPage(data: ItemsPage): ItemsPage {
         return {
-            cursor: data["cursor"],
-            items: data["items"].map(item => ItemConverter.convertToItem(item))
+            cursor: data?.cursor,
+            items: data?.items?.map(item => ItemConverter.convertToItem(item))
         };
     }
 }

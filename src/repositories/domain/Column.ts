@@ -9,11 +9,11 @@ export interface Column {
 }
 
 export class ColumnConverter {
-    public static convertToColumn(data: any): Column {
+    public static convertToColumn(data: Column): Column {
         return {
-            id: data["id"],
-            text: data["text"],
-            type: data["type"]
+            id: data.id,
+            text: data.text,
+            type: data.type
         };
     }
 }

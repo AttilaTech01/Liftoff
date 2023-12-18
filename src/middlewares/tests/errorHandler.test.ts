@@ -54,7 +54,7 @@ test('handleError_CustomErrorWithResponse_LogsMessage', () => {
     errorHandler.handleError(mockCustomError, mockResponse);
 
     //Assert
-    expect(logSpy).toHaveBeenCalledWith('Application encountered an trusted error.');
+    expect(logSpy).toHaveBeenCalledWith('Application encountered a trusted error.');
 });
 
 test('handleError_Otherwise_LogsMessage', () => {

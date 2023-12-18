@@ -10,16 +10,18 @@ export interface Item {
     id?: string;
     name?: string;
     subitems?: Subitem[];
+    text?: string;
 }
 
 export class ItemConverter {
-    public static convertToItem(data: any): Item {
+    public static convertToItem(data: Item): Item {
         return {
-            id: data["id"],
-            name: data["name"],
-            board: BoardConverter.convertToBoard(data["board"]),
-            group: GroupConverter.convertToGroup(data["group"]),
-            column_values: data["column_values"].map(column => ColumnConverter.convertToColumn(column))
+            id: data.id,
+            name: data.name,
+            text: data.text,
+            board: data.board ? BoardConverter.convertToBoard(data.board) : undefined,
+            group: data.group ? GroupConverter.convertToGroup(data.group) : undefined,
+            column_values: data?.column_values?.map(column => ColumnConverter.convertToColumn(column))
         };
     }
 }
