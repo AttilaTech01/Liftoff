@@ -7,7 +7,7 @@ import { Item } from '../../repositories/domain/Item';
 import { User } from '../../repositories/domain/User';
 
 const mockItem: Item = {
-    id: 'id', 
+    id: 123, 
     name: 'name', 
     board: { 
         name: 'name' 

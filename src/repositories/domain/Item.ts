@@ -7,7 +7,7 @@ export interface Item {
     board?: Board;
     column_values?: Column[];
     group?: Group;
-    id?: string;
+    id?: number;
     name?: string;
     subitems?: Subitem[];
     text?: string;

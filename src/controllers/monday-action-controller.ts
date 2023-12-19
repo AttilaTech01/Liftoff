@@ -28,7 +28,7 @@ class MondayActionController {
 
     //integrationId: 245738684
     //recipeId: 30181398
-    async checkDuplicates(req, res, next): Promise<void> {
+    async checkAllDuplicates(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
 
@@ -39,7 +39,29 @@ class MondayActionController {
             const { inputFields } = payload;
             const { boardId, itemId, statusColumnId, statusColumnValue, verifiedColumnId } = inputFields;
 
-            await mondayActionService.checkDuplicates(boardId, itemId, statusColumnId, statusColumnValue, verifiedColumnId);
+            await mondayActionService.checkAllDuplicates(boardId, statusColumnId, statusColumnValue, verifiedColumnId);
+
+            return res.status(200).send({message: 'All duplicates have been checked successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.checkAllDuplicates');
+            next(error);
+        }
+    }
+
+    //integrationId: 246741839
+    //recipeId: 30182862
+    async checkDuplicates(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue } = inputFields;
+
+            await mondayActionService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
 
             return res.status(200).send({message: 'Duplicates have been checked successfully'});
         } catch (err) {

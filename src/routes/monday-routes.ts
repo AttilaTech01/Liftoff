@@ -17,6 +17,9 @@ router.post('/copy-columns-content', authenticationMiddleware, mondayActionContr
 //GROUP ACTIONS
 //integrationId: 245738684
 //recipeId: 30181398
+router.post('/check-all-duplicates', authenticationMiddleware, mondayActionController.checkAllDuplicates);
+//integrationId: 246741839
+//recipeId: 30182862
 router.post('/check-duplicates', authenticationMiddleware, mondayActionController.checkDuplicates);
 
 //ITEM RENAMING

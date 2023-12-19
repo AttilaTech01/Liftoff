@@ -1,5 +1,5 @@
 import mathService, { MathOperationType } from './math-service';
-import { MondayColumnType, StatusColumnValue } from '../constants/mondayTypes';
+import { GeneralColumnValue, MondayColumnType, StatusColumnValue } from '../constants/mondayTypes';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 import { Formula } from '../models/Formula';
@@ -14,7 +14,8 @@ import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
 interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
-    checkDuplicates(boardId: number, itemId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
+    checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
+    checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
@@ -101,10 +102,10 @@ class MondayActionService implements IMondayActionService {
     }
   }
 
-  async checkDuplicates(boardId: number, itemId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean> {
+  async checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean> {
     try {
         //Get items from a board
-        const response: Board = await mondayRepo.getItemsFromBoardId(boardId);
+        const response: Board = await mondayRepo.getItemsByBoardId(boardId);
 
         if (response.items_page == undefined || response.items_page.items == undefined) {
             const message: string = "Couldn't get the data necessary to complete the operation.";
@@ -125,7 +126,7 @@ class MondayActionService implements IMondayActionService {
         //Iterate on cursor value (pagination) and get all items from board
         let currentCursor: string | undefined = response.items_page.cursor;
         while (currentCursor != undefined) {
-            const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursor(currentCursor);
+            const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
             cursorResponse.items?.forEach(item => {
                 const columnToCompare: Column | undefined = item.column_values?.find(column => column.id === verifiedColumnId);
                 if (item.id && columnToCompare?.text) {
@@ -154,6 +155,40 @@ class MondayActionService implements IMondayActionService {
         });
 
         return true;
+    } catch (err) {
+        const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDuplicates');
+        throw error;
+    }
+  }
+
+  async checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    try {
+        //Get items with same value
+        const response: ItemsPage = await mondayRepo.getItemsPageByColumnValues(boardId, columnId, [String(columnValue.value)]);
+
+        if (response.items == undefined) {
+            const message: string = "Couldn't get the data necessary to complete the operation.";
+            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+        }
+
+        //Iterate on cursor value (pagination)
+        let currentCursor: string | undefined = response.cursor;
+        while (currentCursor != undefined) {
+            const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursor(currentCursor);
+            cursorResponse.items?.forEach(item => {
+                response.items?.push(item);
+            });
+            currentCursor = cursorResponse.cursor;
+        }
+
+        //Iterate and change status of duplicates
+        if (response.items.length > 1) {
+            response.items.forEach(async (item) => {
+                item.id && await mondayRepo.changeSimpleColumnValue(boardId, item.id, statusColumnId, String(statusColumnValue.index));
+            });
+        }
+
+        return true;   
     } catch (err) {
         const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDuplicates');
         throw error;

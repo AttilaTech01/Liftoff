@@ -3,7 +3,8 @@ import { BoardInformationResponse, BoardInformationResponseConverter } from './d
 import { Item } from './domain/Item';
 import { ItemInformationResponse, ItemInformationResponseConverter } from './domain/ItemInformationResponse';
 import { ItemsPage } from './domain/ItemsPage';
-import { ItemsPageResponse, ItemsPageResponseConverter } from './domain/ItemsPageResponse';
+import { ItemsPageByColumnValuesResponse, ItemsPageByColumnValuesResponseConverter } from './domain/ItemsPageByColumnValuesResponse';
+import { NextItemsPageResponse, NextItemsPageResponseConverter } from './domain/NextItemsPageResponse';
 import { User } from './domain/User';
 import { UserInformationResponse, UserInformationResponseConverter } from './domain/UserInformationResponse';
 import errorHandler from '../middlewares/errorHandler';
@@ -12,8 +13,10 @@ import { CustomError } from '../models/Error';
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
     getItemInformations(itemId: number): Promise<Item>;
-    getItemsFromBoardId(boardId: number): Promise<Board>;
+    getItemsByBoardId(boardId: number): Promise<Board>;
     getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage>;
+    getItemsNextPageFromCursorWithColumnValues(cursor: string): Promise<ItemsPage>;
+    getItemsPageByColumnValues(boardId: number, columnId: string, columnValues: string[]): Promise<ItemsPage>;
     getUserInformations(userId: number): Promise<User>;
 }
   
@@ -30,9 +33,8 @@ class MondayRepository implements IMondayRepository {
             `;
             const variables = { boardId, columnId, itemId, value };
 
-            const response = await globalThis.mondayClient.api(query, { variables });
+            await globalThis.mondayClient.api(query, { variables });
             //CHECK IF ERROR
-            console.log(response);
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.changeSimpleColumnValue');
@@ -70,7 +72,7 @@ class MondayRepository implements IMondayRepository {
         }
     }
     
-    async getItemsFromBoardId(boardId: number): Promise<Board> {
+    async getItemsByBoardId(boardId: number): Promise<Board> {
         globalThis.mondayClient.setApiVersion("2023-10");
 
         try {
@@ -99,8 +101,31 @@ class MondayRepository implements IMondayRepository {
             throw error;
         }
     }
-    
+
     async getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+
+        try {
+            const query = `query ($cursor: String!) {
+                next_items_page (limit: 3, cursor: $cursor) {
+                    cursor
+                    items {
+                        id
+                    }
+                }
+            }
+            `;
+            const variables = { cursor };
+
+            const response: NextItemsPageResponse = await globalThis.mondayClient.api(query, { variables });
+            return NextItemsPageResponseConverter.convertToItemsPage(response);
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
+            throw error;
+        }
+    }
+    
+    async getItemsNextPageFromCursorWithColumnValues(cursor: string): Promise<ItemsPage> {
         globalThis.mondayClient.setApiVersion("2023-10");
 
         try {
@@ -120,10 +145,33 @@ class MondayRepository implements IMondayRepository {
             `;
             const variables = { cursor };
 
-            const response: ItemsPageResponse = await globalThis.mondayClient.api(query, { variables });
-            return ItemsPageResponseConverter.convertToItemsPage(response);
+            const response: NextItemsPageResponse = await globalThis.mondayClient.api(query, { variables });
+            return NextItemsPageResponseConverter.convertToItemsPage(response);
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
+            throw error;
+        }
+    }
+
+    async getItemsPageByColumnValues(boardId: number, columnId: string, columnValues: string[]): Promise<ItemsPage> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+
+        try {
+            const query = `query ($boardId: ID!, $columnId: String!, $columnValues: [String]!) {
+                items_page_by_column_values (limit: 3, board_id: $boardId, columns: [{ column_id: $columnId, column_values: $columnValues }]) {
+                    cursor
+                    items {
+                        id
+                    }
+                }
+            }
+            `;
+            const variables = { boardId, columnId, columnValues };
+
+            const response: ItemsPageByColumnValuesResponse = await globalThis.mondayClient.api(query, { variables });
+            return ItemsPageByColumnValuesResponseConverter.convertToItemsPage(response);
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemsFromBoardId');
             throw error;
         }
     }

@@ -1,4 +1,4 @@
 export interface SimpleItem {
-    id: string;
+    id: number;
     value: string;
 }

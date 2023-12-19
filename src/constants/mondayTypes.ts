@@ -17,6 +17,11 @@ export type MondayError = {
 };
 
 //GENERAL INFORMATIONS
+export type GeneralColumnValue = {
+    value: any;
+    unit?: any;
+};
+
 export enum MondayColumnType {
     BUTTON = "button",
     COLOR = "color",

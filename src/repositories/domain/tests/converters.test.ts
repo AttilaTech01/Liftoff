@@ -9,7 +9,7 @@ const itemInfoResponse: ItemInformationResponse = {
     data: {
         items: [
             {
-                id: 'item1',
+                id: 1,
                 name: 'name1',
                 board: {
                     name: 'board1'
@@ -31,7 +31,7 @@ const itemInfoResponse: ItemInformationResponse = {
                 ]
             },
             {
-                id: 'item2',
+                id: 2,
                 name: 'name2',
                 board: {
                     name: 'board2'
@@ -53,7 +53,7 @@ const itemInfoResponse: ItemInformationResponse = {
                 ]
             },
             {
-                id: 'item3',
+                id: 3,
                 name: 'name3',
                 board: {
                     name: 'board3'
