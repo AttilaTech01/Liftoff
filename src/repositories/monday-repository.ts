@@ -1,12 +1,11 @@
 import { Board } from './domain/Board';
 import { BoardInformationResponse, BoardInformationResponseConverter } from './domain/BoardInformationResponse';
-import { Converters } from './domain/converters';
 import { Item } from './domain/Item';
-import { ItemInformationResponse } from './domain/ItemInformationResponse';
+import { ItemInformationResponse, ItemInformationResponseConverter } from './domain/ItemInformationResponse';
 import { ItemsPage } from './domain/ItemsPage';
 import { ItemsPageResponse, ItemsPageResponseConverter } from './domain/ItemsPageResponse';
 import { User } from './domain/User';
-import { UserInformationResponse } from './domain/UserInformationResponse';
+import { UserInformationResponse, UserInformationResponseConverter } from './domain/UserInformationResponse';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/Error';
 
@@ -20,6 +19,8 @@ interface IMondayRepository {
   
 class MondayRepository implements IMondayRepository {
     async changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+
         try {
             const query = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) {
                 change_simple_column_value (board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) {
@@ -30,6 +31,7 @@ class MondayRepository implements IMondayRepository {
             const variables = { boardId, columnId, itemId, value };
 
             const response = await globalThis.mondayClient.api(query, { variables });
+            //CHECK IF ERROR
             console.log(response);
             return true;
         } catch (err) {
@@ -61,7 +63,7 @@ class MondayRepository implements IMondayRepository {
             const variables = { itemId };
 
             const response: ItemInformationResponse = await globalThis.mondayClient.api(query, { variables });
-            return Converters.convertToItemArray(response)[0];
+            return ItemInformationResponseConverter.convertToItemArray(response)[0];
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
             throw error;
@@ -69,6 +71,8 @@ class MondayRepository implements IMondayRepository {
     }
     
     async getItemsFromBoardId(boardId: number): Promise<Board> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+
         try {
             const query = `query ($boardId: [ID!]) {
                 boards (ids: $boardId) {
@@ -97,6 +101,8 @@ class MondayRepository implements IMondayRepository {
     }
     
     async getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+
         try {
             const query = `query ($cursor: String!) {
                 next_items_page (limit: 3, cursor: $cursor) {
@@ -133,7 +139,7 @@ class MondayRepository implements IMondayRepository {
             const variables = { userId };
 
             const response: UserInformationResponse = await globalThis.mondayClient.api(query, { variables });
-            return Converters.convertToUserArray(response)[0];
+            return UserInformationResponseConverter.convertToUserArray(response)[0];
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getUserInformations');
             throw error;

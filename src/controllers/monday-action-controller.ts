@@ -35,7 +35,6 @@ class MondayActionController {
         try {
             globalThis.mondayClient = initMondayClient();
             globalThis.mondayClient.setToken(shortLivedToken);
-            globalThis.mondayClient.setApiVersion("2023-10");
             
             const { inputFields } = payload;
             const { boardId, itemId, statusColumnId, statusColumnValue, verifiedColumnId } = inputFields;
