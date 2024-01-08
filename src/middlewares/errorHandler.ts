@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import customLogger from '../middlewares/logger';
 import { CustomError } from '../models/Error';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
@@ -8,8 +9,6 @@ class ErrorHandler {
             return value;
         } 
         else if (value instanceof Error) {
-            //LOGGER
-            console.log(`Error with name ${value.name} has occurred in ${location}.\n Message : ${value.message}. \n Stack trace : ${value.stack}`);
             return new CustomError({ httpCode: 500, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, value.message, value.message) });
         }
         else {
@@ -17,8 +16,7 @@ class ErrorHandler {
             try {
                 stringified = JSON.stringify(value);
             } catch {}
-            //LOGGER
-            console.log(`This value was thrown as is, not through an Error: ${stringified}`);
+            customLogger.logError(`This value was thrown as is, not through an Error: ${stringified}`);
             return new CustomError({ httpCode: 500, mondayNotification: MondayErrorGenerator.generic500() });
         }
     }
@@ -32,14 +30,12 @@ class ErrorHandler {
     }
 
     private handleTrustedError(error: CustomError, response: Response): void {
-        //LOGGER
-        console.log('Application encountered a trusted error.');
+        customLogger.logError(`CustomError with http code ${error.httpCode} has occurred.\n Monday notification : ${JSON.stringify(error.mondayNotification)}`);
         response.status(error.httpCode).send(error.mondayNotification);
     }
 
     private handleUntrustedError(error: Error | CustomError, response?: Response): void {
-        //LOGGER
-        console.log('Application encountered an untrusted error.');
+        customLogger.logError(`Error with name ${error.name} has occurred.\n Message : ${error.message}. \n Stack trace : ${error.stack}`);
         if (response) {
           response.status(500).send({ message: error.message });
         }

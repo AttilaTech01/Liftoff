@@ -1,6 +1,5 @@
 import {Router} from 'express';
 import mondayActionController from '../controllers/monday-action-controller';
-//import mondayGetterController from '../controllers/monday-getter-controller';
 import authenticationMiddleware from '../middlewares/authentication';
 
 const router = Router();
@@ -26,8 +25,5 @@ router.post('/check-duplicates', authenticationMiddleware, mondayActionControlle
 //integrationId: 239133538, 245268407
 //recipeId: 30171042, 30180578
 router.post('/rename-item', authenticationMiddleware, mondayActionController.updateItemName);
-
-//------------------------------------------------------------------------------------------------------------
-//GETTERS
 
 export default router;
