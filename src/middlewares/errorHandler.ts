@@ -30,7 +30,7 @@ class ErrorHandler {
     }
 
     private handleTrustedError(error: CustomError, response: Response): void {
-        customLogger.logError(`CustomError with http code ${error.httpCode} has occurred.\n Monday notification : ${JSON.stringify(error.mondayNotification)}`);
+        customLogger.logError(`CustomError with http code ${error.httpCode} has occurred.\n Monday notification : ${JSON.stringify(error.mondayNotification)}. \n Stack trace : ${error.stack}`);
         response.status(error.httpCode).send(error.mondayNotification);
     }
 
