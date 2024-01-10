@@ -1,7 +1,7 @@
 import excelFormulaService from './excel-formula-service';
 import { GeneralColumnValue, StatusColumnValue } from '../constants/mondayTypes';
 import errorHandler from '../middlewares/errorHandler';
-import { CustomError } from '../models/Error';
+import { CustomError } from '../models/CustomError';
 import { SimpleItem } from '../models/SimpleItem';
 import mondayRepo from '../repositories/monday-repository';
 import { Board } from '../repositories/domain/Board';
@@ -20,89 +20,6 @@ interface IMondayActionService {
 }
 
 class MondayActionService implements IMondayActionService {
-    /*
-    //DEPRECATED - no longer used
-    async DEPapplyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
-        try {
-            //Get infos from item
-            const item: Item = await mondayRepo.getItemInformations(itemId);
-            
-            //Parse the formula : getting the values and column ids to use
-            const parsedFormula: Formula = this.parseFormulaStructure(formula);
-
-            if (!item || !parsedFormula) {
-                const message: string = "Couldn't get the data necessary to complete the operation.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
-            }
-
-            //Build the array of numbers our formula needs
-            //IF contains "}", then it is a column id and we need to get the value from the monday item
-            //  IF la column Id est trouvé dans notre item && (la column est de type NUMBERS OU (la column est de type miroir && le contenu est un nombre))
-            //ELSE it is a number already
-            let numbersArray: number[] = [];
-            parsedFormula.values.forEach((formulaValue) => {
-                if (formulaValue.includes("{")) {
-                    item.column_values?.forEach((itemColumn) => {
-                    if (itemColumn.id === this.getColumnIdFromCode(formulaValue) && (itemColumn.type === MondayColumnType.NUMBERS || (itemColumn.type === MondayColumnType.LOOKUP && itemColumn.text && this.isNumeric(itemColumn.text)))) {
-                        numbersArray.push(Number(itemColumn.text)); 
-                    } 
-                });            
-                } else {
-                    numbersArray.push(Number(formulaValue));
-                }
-            });
-
-            //Execute the right formula with the found values
-            let result: number = 0;
-            switch(parsedFormula.operation) {
-                case "AVERAGE": {
-                    result = mathService.AVERAGE(numbersArray);
-                    break;
-                }
-                case "DIVIDE": {
-                    if (parsedFormula.values.length !== 2) {
-                        const message: string = "Number of values incorrect for division. Need 2 but found " + parsedFormula.values.length;
-                        throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Division not possible", message, message) });
-                    }
-                    result = mathService.DIVIDE(numbersArray[0], numbersArray[1]);
-                    break;
-                }
-                case "MAX": {
-                    result = mathService.MAX(numbersArray);
-                    break;
-                }
-                case "MIN": {
-                    result = mathService.MIN(numbersArray);
-                    break;
-                }
-                case "MINUS": {
-                    result = mathService.MINUS(numbersArray);
-                    break;
-                }
-                case "MULTIPLY": {
-                    result = mathService.MULTIPLY(numbersArray);
-                    break;
-                }
-                case "POWER": {
-                    result = mathService.POWER(numbersArray[0], numbersArray[1]);
-                    break;
-                }
-                case "SUM": {
-                    result = mathService.SUM(numbersArray);
-                    break;
-                }
-            }
-
-            //Write result in monday's column
-            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, result.toString());
-
-            return true;
-        } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
-            throw error;
-        }
-    }
-    */
     async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
         try {
             const formulaWithValues: string = await this.replaceColumnIdsByValues(formula, itemId);
@@ -399,67 +316,6 @@ class MondayActionService implements IMondayActionService {
 
         return valuesToReturn;
     }  
-
-    //DEPRECATED - no longer used 
-
-    /**
-        * "10" || "123.78" || "test"
-        * RETURNS
-        * true || true || false
-        */
-    /*
-    private isNumeric(valueInString: string): boolean {
-        const regEx = new RegExp("^-?[0-9]([0-9.,]+)?", 'g');
-        return regEx.test(valueInString) ? true : false;
-    }  
-    */
-
-    /**
-        * {board.name}${pulse.group}--{pulse.number5}/{pulse.text2}
-        * RETURNS
-        * [{board.name}, {pulse.group}, {pulse.number5}, {pulse.text2}]
-        */
-    /*
-    private parseNameStructure(itemNameStructure: string): string[] {
-        const regEx = new RegExp("{([^{]*?)}", 'g');
-        const valuesList = itemNameStructure.match(regEx);
-        let valuesToReturn: string[] = [];
-
-        for (let index in valuesList) {
-            valuesToReturn.push(valuesList[index]);
-        }
-
-        return valuesToReturn;
-    }
-    */
-
-    /**
-        * SUM({pulse.number1}, 23, {pulse.number2}, {pulse.number3}, 10)
-        * RETURNS
-        * {
-        *   operation : SUM
-        *   values : [{pulse.number1}, 23, {pulse.number2}, {pulse.number3}, 10]
-        * }
-        */
-    /*
-    private parseFormulaStructure(formulaStructure: string): Formula {
-        //Operation
-        const opRegEx = new RegExp("[A-Z]+\\(", 'g');
-        const op: RegExpMatchArray | null = formulaStructure.match(opRegEx);
-
-        //Columns Ids
-        const idsRegEx = new RegExp("{([^{]*?)}|\\d+", 'g');
-        const valuesAndColumnIds: RegExpMatchArray | null = formulaStructure.match(idsRegEx);
-
-        if (!op || !valuesAndColumnIds || valuesAndColumnIds.length === 0) {
-            const message: string = "Couldn't get the data necessary to complete the operation.";
-            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
-        }
-
-        const mathOp: MathOperationType = op[0].substring(0, op[0].length - 1) as MathOperationType;
-        return { operation: mathOp, values: valuesAndColumnIds };
-    }  
-    */
 }
 
 export default new MondayActionService;

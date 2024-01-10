@@ -1,6 +1,6 @@
 import initMondayClient from 'monday-sdk-js';
 import errorHandler from '../middlewares/errorHandler';
-import { CustomError } from '../models/Error';
+import { CustomError } from '../models/CustomError';
 import mondayActionService from '../services/monday-action-service';
 
 class MondayActionController {

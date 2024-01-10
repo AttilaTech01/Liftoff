@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import customLogger from '../middlewares/logger';
-import { CustomError } from '../models/Error';
+import { CustomError } from '../models/CustomError';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
 class ErrorHandler {

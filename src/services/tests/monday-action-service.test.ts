@@ -1,7 +1,7 @@
 import mathService from '../excel-formula-service';
 import mondayService from '../monday-action-service';
 import { MondayColumnType } from '../../constants/mondayTypes';
-import { CustomError } from '../../models/Error';
+import { CustomError } from '../../models/CustomError';
 import mondayRepo from '../../repositories/monday-repository';
 import { Item } from '../../repositories/domain/Item';
 import { User } from '../../repositories/domain/User';

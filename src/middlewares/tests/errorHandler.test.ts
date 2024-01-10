@@ -1,6 +1,6 @@
 import errorHandler from '../errorHandler';
 import customLogger from '../logger';
-import { CustomError } from '../../models/Error';
+import { CustomError } from '../../models/CustomError';
 import { MondayError } from '../../constants/mondayTypes';
 
 // VARIABLES SETUP

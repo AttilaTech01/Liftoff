@@ -8,7 +8,7 @@ import { NextItemsPageResponse, NextItemsPageResponseConverter } from './domain/
 import { User } from './domain/User';
 import { UserInformationResponse, UserInformationResponseConverter } from './domain/UserInformationResponse';
 import errorHandler from '../middlewares/errorHandler';
-import { CustomError } from '../models/Error';
+import { CustomError } from '../models/CustomError';
 
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
