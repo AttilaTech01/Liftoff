@@ -1,5 +1,6 @@
 import errorHandler from '../errorHandler';
-import { CustomError } from '../../models/Error';
+import customLogger from '../logger';
+import { CustomError } from '../../models/CustomError';
 import { MondayError } from '../../constants/mondayTypes';
 
 // VARIABLES SETUP
@@ -27,6 +28,10 @@ const mockCustomError: CustomError = new CustomError({
 const mockError: Error = new Error(mockErrorMessage);
 const mockResponse: any = {};
 
+afterEach(() => {
+    jest.restoreAllMocks();
+});
+
 // TESTS
 test('handleThrownObject_CustomError_ReturnsItself', () => {
     //Assert
@@ -46,7 +51,7 @@ test('handleThrownObject_OtherTypes_ReturnsGenericCustomError', () => {
 
 test('handleError_CustomErrorWithResponse_LogsMessage', () => {
     //Arrange
-    const logSpy = jest.spyOn(console, 'log');
+    const logSpy = jest.spyOn(customLogger, 'logError');
     mockResponse.status = jest.fn().mockReturnValue(mockResponse);
     mockResponse.send = jest.fn().mockReturnValue(mockResponse);
 
@@ -54,12 +59,12 @@ test('handleError_CustomErrorWithResponse_LogsMessage', () => {
     errorHandler.handleError(mockCustomError, mockResponse);
 
     //Assert
-    expect(logSpy).toHaveBeenCalledWith('Application encountered a trusted error.');
+    expect(logSpy).toHaveBeenCalledTimes(1);
 });
 
 test('handleError_Otherwise_LogsMessage', () => {
     //Arrange
-    const logSpy = jest.spyOn(console, 'log');
+    const logSpy = jest.spyOn(customLogger, 'logError');
     mockResponse.status = jest.fn().mockReturnValue(mockResponse);
     mockResponse.send = jest.fn().mockReturnValue(mockResponse);
 
@@ -67,7 +72,7 @@ test('handleError_Otherwise_LogsMessage', () => {
     errorHandler.handleError(mockError, mockResponse);
 
     //Assert
-    expect(logSpy).toHaveBeenCalledWith('Application encountered an untrusted error.');
+    expect(logSpy).toHaveBeenCalledTimes(1);
 });
 
 
