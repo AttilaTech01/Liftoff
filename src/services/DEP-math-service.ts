@@ -1,3 +1,7 @@
+//THIS FILE IS DEPRECATED - no longer used
+
+import { HyperFormula } from 'hyperformula';
+
 export type MathOperationType = 'AVERAGE' | 'DIVIDE' | 'MAX' | 'MIN' | 'MINUS' | 'MULTIPLY' | 'POWER' | 'SUM';
 
 interface IMathService {
@@ -89,7 +93,13 @@ class MathService implements IMathService {
         return Number(Math.round(Number(value + 'e' + numberOfDigits)) + 'e' + numberOfDigits * -1); 
     }
 
-    // SUM(w,x,y,z) => w + x + y + z
+    /**
+    * Ex: SUM(w,x,y,z) => w + x + y + z
+    * 
+    * [1,2,3,4]
+    * RETURNS
+    * 10
+    */
     SUM(numbers: number[]): number {
         let result: number = 0;
         numbers.forEach(number => {

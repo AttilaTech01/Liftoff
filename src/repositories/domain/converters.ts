@@ -6,7 +6,7 @@ import { ItemInformationResponse } from './ItemInformationResponse';
 import { User } from './User';
 import { UserInformationResponse } from './UserInformationResponse';
 
-// IN TRANSITION - TO BE REPLACED
+// IN TRANSITION - TO BE REPLACED - looking for best solution
 export class Converters {
     // Item
     public static convertToItemArray(response: ItemInformationResponse): Item[] {

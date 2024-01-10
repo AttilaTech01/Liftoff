@@ -1,4 +1,4 @@
-import mathService from '../math-service';
+import mathService from '../DEP-math-service';
 
 // TESTS
 describe('AVERAGE', () => {

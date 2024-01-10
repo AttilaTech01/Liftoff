@@ -9,7 +9,7 @@ class ErrorHandler {
             return value;
         } 
         else if (value instanceof Error) {
-            return new CustomError({ httpCode: 500, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, value.message, value.message) });
+            return new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, value.message, value.message) });
         }
         else {
             let stringified: string = '[Unable to stringify the thrown value]';
