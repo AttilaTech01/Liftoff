@@ -17,7 +17,8 @@ interface IMondayRepository {
     getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage>;
     getItemsNextPageFromCursorWithColumnValues(cursor: string): Promise<ItemsPage>;
     getItemsPageByColumnValues(boardId: number, columnId: string, columnValues: string[]): Promise<ItemsPage>;
-    getItemsPageWithFilters(boardId: number, columnId: string);
+    getItemsPageWithFiltersNumber(boardId: number, columnId: string): Promise<Board>;
+    getItemsPageWithFiltersText(boardId: number, columnId: string): Promise<Board>;
     getUserInformations(userId: number): Promise<User>;
 }
   
@@ -44,8 +45,10 @@ class MondayRepository implements IMondayRepository {
     }
 
     async getItemInformations(itemId: number): Promise<Item> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+        
         try {
-            const query = `query ($itemId: [Int]) {
+            const query = `query ($itemId: [ID!]) {
                 items (ids: $itemId) {
                     id
                     name
@@ -66,6 +69,7 @@ class MondayRepository implements IMondayRepository {
             const variables = { itemId };
 
             const response: ItemInformationResponse = await globalThis.mondayClient.api(query, { variables });
+            console.log('getItemInformations : ' + JSON.stringify(response));
             return ItemInformationResponseConverter.convertToItemArray(response)[0];
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');
@@ -177,7 +181,7 @@ class MondayRepository implements IMondayRepository {
         }
     }
 
-    async getItemsPageWithFilters(boardId: number, columnId: string): Promise<Board> {
+    async getItemsPageWithFiltersNumber(boardId: number, columnId: string): Promise<Board> {
         globalThis.mondayClient.setApiVersion("2023-10");
         const orderColumnId: string = columnId;
         const rulesColumnId: string = columnId;
@@ -218,9 +222,44 @@ class MondayRepository implements IMondayRepository {
         } 
     }
 
+    async getItemsPageWithFiltersText(boardId: number, columnId: string): Promise<Board> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+
+        try {
+            const query = `query ($boardId: [ID!], $columnId: ID!) {
+                boards (ids: $boardId) {
+                    items_page (limit: 10, query_params: { 
+                        rules: [{
+                            column_id: $columnId,
+                            compare_value: [],
+                            operator: is_not_empty
+                        }]
+                    }) {
+                        cursor
+                        items {
+                            id
+                            column_values {
+                                id
+                                text
+                            }
+                        }
+                    }
+                }
+            }
+            `;
+            const variables = { boardId, columnId };
+
+            const response: BoardInformationResponse = await globalThis.mondayClient.api(query, { variables });
+            return BoardInformationResponseConverter.convertToBoardArray(response)[0];
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemsPageWithFilters');
+            throw error;
+        } 
+    }
+
     async getUserInformations(userId: number): Promise<User> {
         try {
-            const query = `query ($userId: [Int]) {
+            const query = `query ($userId: [ID!]) {
                 users (ids: $userId, limit: 1) {
                     name
                 }
@@ -229,6 +268,7 @@ class MondayRepository implements IMondayRepository {
             const variables = { userId };
 
             const response: UserInformationResponse = await globalThis.mondayClient.api(query, { variables });
+            console.log('getUserInformations : ' + JSON.stringify(response));
             return UserInformationResponseConverter.convertToUserArray(response)[0];
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getUserInformations');
