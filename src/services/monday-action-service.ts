@@ -16,6 +16,7 @@ interface IMondayActionService {
     checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
     checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
+    autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
@@ -155,6 +156,48 @@ class MondayActionService implements IMondayActionService {
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.copyColumnsContent');
+            throw error;
+        }
+    }
+
+    async autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean> {
+        try {
+            //Get filtered items based on board id and params
+            const response: Board = await mondayRepo.getItemsPageWithFilters(boardId, columnId);
+
+            if (response.items_page == undefined || response.items_page.items == undefined) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            const itemList: Item[] = response.items_page.items;
+
+            //Iterate on cursor value (pagination) and get all items from board
+            let currentCursor: string | undefined = response.items_page.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    itemList.push(item);
+                });
+                currentCursor = cursorResponse.cursor;
+            }
+
+            //Getting every value of the chosen column
+            const valueList: number[] = [];
+            itemList.forEach(item => {
+                const column: Column | undefined = item.column_values?.find((column) => column.id === columnId);
+                if (column && column.text) {
+                    valueList.push(Number(column.text));
+                }
+            });
+
+            //Find biggest value, add on it, change Monday column value
+            const biggestValue: number = +Math.max(...valueList) + +incrementValue;
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, String(biggestValue));
+
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoNumber');
             throw error;
         }
     }

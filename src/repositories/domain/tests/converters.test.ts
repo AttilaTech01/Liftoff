@@ -5,6 +5,7 @@ import { User } from '../User';
 import { UserInformationResponse } from '../UserInformationResponse';
 import { MondayColumnType } from '../../../constants/mondayTypes';
 
+// TODO - needs to test each converter and not the deprecated global class
 const itemInfoResponse: ItemInformationResponse = {
     data: {
         items: [

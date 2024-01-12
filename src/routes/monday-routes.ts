@@ -21,6 +21,9 @@ router.post('/check-all-duplicates', authenticationMiddleware, mondayActionContr
 //integrationId: 246741839
 //recipeId: 30182862
 router.post('/check-duplicates', authenticationMiddleware, mondayActionController.checkDuplicates);
+//integrationId: 251833390
+//recipeId: 30189637
+router.post('/auto-number', authenticationMiddleware, mondayActionController.autoNumber);
 
 //ITEM RENAMING
 //integrationId: 239133538, 245268407

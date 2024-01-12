@@ -92,6 +92,28 @@ class MondayActionController {
         }
     }
 
+    //integrationId: 251833390 
+    //recipeId: 30189637 
+    async autoNumber(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, itemId, columnId, incrementValue } = inputFields;
+
+            await mondayActionService.autoNumber(boardId, itemId, columnId, incrementValue);
+
+            return res.status(200).send({message: 'Increment has been completed successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.autoNumber');
+            next(error);
+        }
+    }
+
     //integrationId: 239133538, 245268407
     //recipeId: 30171042, 30180578
     async updateItemName(req, res, next): Promise<void> {

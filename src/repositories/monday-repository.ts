@@ -17,6 +17,7 @@ interface IMondayRepository {
     getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage>;
     getItemsNextPageFromCursorWithColumnValues(cursor: string): Promise<ItemsPage>;
     getItemsPageByColumnValues(boardId: number, columnId: string, columnValues: string[]): Promise<ItemsPage>;
+    getItemsPageWithFilters(boardId: number, columnId: string);
     getUserInformations(userId: number): Promise<User>;
 }
   
@@ -78,7 +79,7 @@ class MondayRepository implements IMondayRepository {
         try {
             const query = `query ($boardId: [ID!]) {
                 boards (ids: $boardId) {
-                    items_page (limit: 3) {
+                    items_page (limit: 10) {
                         cursor
                         items {
                             id
@@ -107,7 +108,7 @@ class MondayRepository implements IMondayRepository {
 
         try {
             const query = `query ($cursor: String!) {
-                next_items_page (limit: 3, cursor: $cursor) {
+                next_items_page (limit: 10, cursor: $cursor) {
                     cursor
                     items {
                         id
@@ -130,7 +131,7 @@ class MondayRepository implements IMondayRepository {
 
         try {
             const query = `query ($cursor: String!) {
-                next_items_page (limit: 3, cursor: $cursor) {
+                next_items_page (limit: 10, cursor: $cursor) {
                     cursor
                     items {
                         id
@@ -158,7 +159,7 @@ class MondayRepository implements IMondayRepository {
 
         try {
             const query = `query ($boardId: ID!, $columnId: String!, $columnValues: [String]!) {
-                items_page_by_column_values (limit: 3, board_id: $boardId, columns: [{ column_id: $columnId, column_values: $columnValues }]) {
+                items_page_by_column_values (limit: 10, board_id: $boardId, columns: [{ column_id: $columnId, column_values: $columnValues }]) {
                     cursor
                     items {
                         id
@@ -174,6 +175,47 @@ class MondayRepository implements IMondayRepository {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemsFromBoardId');
             throw error;
         }
+    }
+
+    async getItemsPageWithFilters(boardId: number, columnId: string): Promise<Board> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+        const orderColumnId: string = columnId;
+        const rulesColumnId: string = columnId;
+
+        try {
+            const query = `query ($boardId: [ID!], $orderColumnId: String!, $rulesColumnId: ID!) {
+                boards (ids: $boardId) {
+                    items_page (limit: 10, query_params: {
+                        order_by: [{
+                            column_id: $orderColumnId,
+                            direction: desc 
+                        }], 
+                        rules: [{
+                            column_id: $rulesColumnId,
+                            compare_value: [],
+                            operator: is_not_empty
+                        }]
+                    }) {
+                        cursor
+                        items {
+                            id
+                            column_values {
+                                id
+                                text
+                            }
+                        }
+                    }
+                }
+            }
+            `;
+            const variables = { boardId, orderColumnId, rulesColumnId };
+
+            const response: BoardInformationResponse = await globalThis.mondayClient.api(query, { variables });
+            return BoardInformationResponseConverter.convertToBoardArray(response)[0];
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemsPageWithFilters');
+            throw error;
+        } 
     }
 
     async getUserInformations(userId: number): Promise<User> {
