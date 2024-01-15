@@ -62,6 +62,9 @@ class MondayRepository implements IMondayRepository {
                         id
                         text
                         type
+                        ... on MirrorValue {
+                            display_value
+                        }
                     }
                 }
             }
@@ -69,7 +72,6 @@ class MondayRepository implements IMondayRepository {
             const variables = { itemId };
 
             const response: ItemInformationResponse = await globalThis.mondayClient.api(query, { variables });
-            console.log('getItemInformations : ' + JSON.stringify(response));
             return ItemInformationResponseConverter.convertToItemArray(response)[0];
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getItemInformations');

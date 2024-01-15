@@ -139,7 +139,7 @@ class MondayActionService implements IMondayActionService {
 
             if (sourceIds.length != targetIds.length) {
                 const message: string = "Received " + sourceIds.length + " source column ids and " + targetIds.length + " target column ids. Each source must be matched to one target.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Parameters received are incorrect", message, message) });
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Received parameters are incorrect", message, message) });
             }
 
             const item: Item = await mondayRepo.getItemInformations(itemId);
@@ -257,60 +257,9 @@ class MondayActionService implements IMondayActionService {
     }
 
     async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
-        try {  
-            //Get infos from item
-            const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
-
-            if (item == undefined) {
-                const message: string = "Couldn't get the data necessary to complete the operation.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
-            }
-
-            //Search for values to use in new name
-            //const untrimmedColumnIds: string[] = this.parseContextAndColumnIds(value);
-
+        try { 
             //Create new name
             let newName: string = await this.replaceIdsByValues(value, itemId, userId);
-            /*
-            let newName: string = '';
-            for (let index in untrimmedColumnIds) {
-                const regEx = new RegExp(untrimmedColumnIds[index]);
-
-                switch(untrimmedColumnIds[index]) { 
-                    case "{user.name}": { 
-                        const user: User = await mondayRepo.getUserInformations(userId);
-                        if (user.name) {
-                            newName = newName.replace(regEx, user.name);
-                        } else {
-                            newName = newName.replace(regEx, "N/A"); 
-                        }
-                        break; 
-                    } 
-                    case "{board.name}": {
-                        if (item.board?.name) newName = newName.replace(regEx, item.board.name);  
-                        break; 
-                    } 
-                    case "{pulse.group}": { 
-                        if (item.group?.title) newName = newName.replace(regEx, item.group.title); 
-                        break; 
-                    } 
-                    case "{pulse.name}": { 
-                        if (item.name) newName = newName.replace(regEx, item.name); 
-                        break; 
-                    } 
-                    default: { 
-                        for (let itemColumnIndex in item.column_values) {
-                            if (item.column_values[itemColumnIndex].id === this.getColumnIdFromCode(regEx.toString())) {
-                                newName = newName.replace(regEx, item.column_values[itemColumnIndex].text);
-                            } else if (item.column_values.length === Number(itemColumnIndex) + 1) {
-                                newName = newName.replace(regEx, "N/A"); 
-                            }
-                        }
-                        break; 
-                    } 
-                } 
-            }
-            */
 
             //Updating Monday item's name
             await mondayRepo.changeSimpleColumnValue(boardId, itemId, "name", newName);
@@ -421,16 +370,6 @@ class MondayActionService implements IMondayActionService {
                     } 
                 } 
             }
-
-            /*
-            isolatedIds.forEach((columnId) => {
-                item.column_values?.forEach((itemColumn) => {
-                    if (itemColumn.id === this.getColumnIdFromCode(columnId)) {
-                        stringWithColumnValues = itemColumn.text ? stringWithColumnValues.replace(columnId, itemColumn.text) : stringWithColumnValues;
-                    } 
-                });            
-            });
-            */
 
             if (stringWithColumnValues.includes("{")) {
                 const message: string = "Characters '{' and '}' should only be used in column identification.";

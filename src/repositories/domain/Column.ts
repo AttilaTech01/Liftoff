@@ -1,6 +1,7 @@
 import { MondayColumnType } from '../../constants/mondayTypes';
 
 export interface Column {
+    display_value?: string;
     id?: string;
     text?: string;
     title?: string;
@@ -11,8 +12,9 @@ export interface Column {
 export class ColumnConverter {
     public static convertToColumn(data: Column): Column {
         return {
+            display_value: data.display_value,
             id: data.id,
-            text: data.text,
+            text: data.type === MondayColumnType.MIRROR || data.type === MondayColumnType.BOARD_RELATION ? data.display_value : data.text,
             type: data.type
         };
     }
