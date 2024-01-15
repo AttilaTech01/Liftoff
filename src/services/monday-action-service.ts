@@ -10,19 +10,22 @@ import { Item } from '../repositories/domain/Item';
 import { ItemsPage } from '../repositories/domain/ItemsPage';
 import { User } from '../repositories/domain/User';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
+import Utilities from '../utilities/utilities';
 
 interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
     checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
     checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
+    autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean>;
+    autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
 class MondayActionService implements IMondayActionService {
     async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
         try {
-            const formulaWithValues: string = await this.replaceColumnIdsByValues(formula, itemId);
+            const formulaWithValues: string = await this.replaceIdsByValues(formula, itemId);
 
             const result = excelFormulaService.Generic(formulaWithValues);
 
@@ -136,7 +139,7 @@ class MondayActionService implements IMondayActionService {
 
             if (sourceIds.length != targetIds.length) {
                 const message: string = "Received " + sourceIds.length + " source column ids and " + targetIds.length + " target column ids. Each source must be matched to one target.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Parameters received are incorrect", message, message) });
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Received parameters are incorrect", message, message) });
             }
 
             const item: Item = await mondayRepo.getItemInformations(itemId);
@@ -159,58 +162,104 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
-    async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
-        try {  
-            //Get infos from item
-            const item: Item | undefined = await mondayRepo.getItemInformations(itemId);
+    async autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean> {
+        let formatStringWithValues: string = format;
 
-            if (item == undefined) {
+        //Get filtered items based on board id and params
+        const board: Board = await mondayRepo.getItemsPageWithFiltersText(boardId, columnId);
+
+        if (board.items_page == undefined || board.items_page.items == undefined) {
+            const message: string = "Couldn't get the data necessary to complete the operation.";
+            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+        }
+
+        const itemList: Item[] = board.items_page.items;
+
+        //Iterate on cursor value (pagination) and get all items from board
+        let currentCursor: string | undefined = board.items_page.cursor;
+        while (currentCursor != undefined) {
+            const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
+            cursorResponse.items?.forEach(item => {
+                itemList.push(item);
+            });
+            currentCursor = cursorResponse.cursor;
+        }
+
+        //Getting all {ID} values
+        const valueList: string[] = [];
+        itemList.forEach(item => {
+            const column: Column | undefined = item.column_values?.find((column) => column.id === columnId);
+            if (column && column.text) {
+                const startIndexOfId: number = format.indexOf("{ID}");
+                valueList.push(column.text.substring(startIndexOfId, +startIndexOfId + +numberOfDigits));
+            }
+        });
+
+        //Find biggest value, add on it, replace it in our new string
+        if (valueList.length <= 0) {
+            const newID: string = Utilities.transformNumberIntoStringWithDigits(1, numberOfDigits);
+            formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+        } else {
+            const numberValueList: number[] = Utilities.transformStringsWithDigitsIntoNumbers(valueList);
+            const newBiggestValue: number = +Math.max(...numberValueList) + +1;
+            const newID: string = Utilities.transformNumberIntoStringWithDigits(newBiggestValue, numberOfDigits);
+            formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+        }
+
+        //Replacing all other ids in the asked format by their value
+        formatStringWithValues = await this.replaceIdsByValues(formatStringWithValues, itemId, userId);
+
+        //Updating Monday's specified column
+        await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, formatStringWithValues);
+        return true;
+    }
+
+    async autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean> {
+        try {
+            //Get filtered items based on board id and params
+            const response: Board = await mondayRepo.getItemsPageWithFiltersNumber(boardId, columnId);
+
+            if (response.items_page == undefined || response.items_page.items == undefined) {
                 const message: string = "Couldn't get the data necessary to complete the operation.";
                 throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
             }
 
-            //Search for values to use in new name
-            const untrimmedColumnIds: string[] = this.parseColumnIds(value);
+            const itemList: Item[] = response.items_page.items;
 
-            //Create new name
-            let newName: string = value;
-            for (let index in untrimmedColumnIds) {
-                const regEx = new RegExp(untrimmedColumnIds[index]);
-
-                switch(untrimmedColumnIds[index]) { 
-                    case "{user.name}": { 
-                        const user: User = await mondayRepo.getUserInformations(userId);
-                        if (user.name) {
-                            newName = newName.replace(regEx, user.name);
-                        } else {
-                            newName = newName.replace(regEx, "N/A"); 
-                        }
-                        break; 
-                    } 
-                    case "{board.name}": {
-                        if (item.board?.name) newName = newName.replace(regEx, item.board.name);  
-                        break; 
-                    } 
-                    case "{pulse.group}": { 
-                        if (item.group?.title) newName = newName.replace(regEx, item.group.title); 
-                        break; 
-                    } 
-                    case "{pulse.name}": { 
-                        if (item.name) newName = newName.replace(regEx, item.name); 
-                        break; 
-                    } 
-                    default: { 
-                        for (let itemColumnIndex in item.column_values) {
-                            if (item.column_values[itemColumnIndex].id === this.getColumnIdFromCode(regEx.toString())) {
-                                newName = newName.replace(regEx, item.column_values[itemColumnIndex].text);
-                            } else if (item.column_values.length === Number(itemColumnIndex) + 1) {
-                                newName = newName.replace(regEx, "N/A"); 
-                            }
-                        }
-                        break; 
-                    } 
-                } 
+            //Iterate on cursor value (pagination) and get all items from board
+            let currentCursor: string | undefined = response.items_page.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    itemList.push(item);
+                });
+                currentCursor = cursorResponse.cursor;
             }
+
+            //Getting every value of the chosen column
+            const valueList: number[] = [];
+            itemList.forEach(item => {
+                const column: Column | undefined = item.column_values?.find((column) => column.id === columnId);
+                if (column && column.text) {
+                    valueList.push(Number(column.text));
+                }
+            });
+
+            //Find biggest value, add on it, change Monday column value
+            const biggestValue: number = +Math.max(...valueList) + +incrementValue;
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, String(biggestValue));
+
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoNumber');
+            throw error;
+        }
+    }
+
+    async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
+        try { 
+            //Create new name
+            let newName: string = await this.replaceIdsByValues(value, itemId, userId);
 
             //Updating Monday item's name
             await mondayRepo.changeSimpleColumnValue(boardId, itemId, "name", newName);
@@ -260,28 +309,67 @@ class MondayActionService implements IMondayActionService {
      * boardName$groupName--number5Value/text2Value
      * SUM(number1Value, 23, number2Value, number3Value, 10)
     */
-    private async replaceColumnIdsByValues(stringWithColumnIds: string, itemId: number): Promise<string> {
+    private async replaceIdsByValues(stringWithContextAndColumnIds: string, itemId: number, userId?: number): Promise<string> {
         try {
-            let stringWithColumnValues: string = stringWithColumnIds; 
+            let stringWithColumnValues: string = stringWithContextAndColumnIds; 
+
+            //Parsing the string : getting the context and/or column ids to replace
+            const isolatedIds: string[] = this.parseContextAndColumnIds(stringWithContextAndColumnIds);
+
+            if (!isolatedIds || isolatedIds.length <= 0) {
+                return stringWithColumnValues;
+            }
 
             //Get infos from item
             const item: Item = await mondayRepo.getItemInformations(itemId);
 
-            //Parsing the string : getting the column ids to replace
-            const isolatedIds: string[] = this.parseColumnIds(stringWithColumnIds);
-
-            if (!stringWithColumnValues || (isolatedIds.length > 0 && !item)) {
+            if (!item) {
                 const message: string = "Couldn't get the data necessary to complete the operation.";
                 throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
             }
 
-            isolatedIds.forEach((columnId) => {
-                item.column_values?.forEach((itemColumn) => {
-                    if (itemColumn.id === this.getColumnIdFromCode(columnId)) {
-                        stringWithColumnValues = itemColumn.text ? stringWithColumnValues.replace(columnId, itemColumn.text) : stringWithColumnValues;
+            //Iterate on ids and get the value
+            for (let index in isolatedIds) {
+                const regEx = new RegExp(isolatedIds[index]);
+                switch(isolatedIds[index]) { 
+                    case "{user.name}": { 
+                        if (userId) {
+                            const user: User = await mondayRepo.getUserInformations(userId);
+                            if (user.name) {
+                                stringWithColumnValues = stringWithColumnValues.replace(regEx, user.name);
+                            } else {
+                                stringWithColumnValues = stringWithColumnValues.replace(regEx, "N/D"); 
+                            }
+                        } else {
+                            const message: string = "Couldn't find the user name.";
+                            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+                        }
+                        break; 
                     } 
-                });            
-            });
+                    case "{board.name}": {
+                        if (item.board?.name) stringWithColumnValues = stringWithColumnValues.replace(regEx, item.board.name);  
+                        break; 
+                    } 
+                    case "{pulse.group}": { 
+                        if (item.group?.title) stringWithColumnValues = stringWithColumnValues.replace(regEx, item.group.title); 
+                        break; 
+                    } 
+                    case "{pulse.name}": { 
+                        if (item.name) stringWithColumnValues = stringWithColumnValues.replace(regEx, item.name); 
+                        break; 
+                    } 
+                    default: { 
+                        for (let itemColumnIndex in item.column_values) {
+                            if (item.column_values[itemColumnIndex].id === this.getColumnIdFromCode(isolatedIds[index])) {
+                                stringWithColumnValues = item.column_values[itemColumnIndex].text ? stringWithColumnValues.replace(regEx, item.column_values[itemColumnIndex].text) : stringWithColumnValues.replace(regEx, "N/D");
+                            } else if (item.column_values.length === Number(itemColumnIndex) + 1) {
+                                stringWithColumnValues = stringWithColumnValues.replace(regEx, "N/D"); 
+                            }
+                        }
+                        break; 
+                    } 
+                } 
+            }
 
             if (stringWithColumnValues.includes("{")) {
                 const message: string = "Characters '{' and '}' should only be used in column identification.";
@@ -305,7 +393,7 @@ class MondayActionService implements IMondayActionService {
         * [{board.name}, {pulse.group}, {pulse.number5}, {pulse.text2}]
         * [{pulse.number1}, {pulse.number2}, {pulse.number3}]
     */
-    private parseColumnIds(stringWithColumnIds: string): string[] {
+    private parseContextAndColumnIds(stringWithColumnIds: string): string[] {
         const regEx = new RegExp("{([^{]*?)}", 'g');
         const columnIds = stringWithColumnIds.match(regEx);
         let valuesToReturn: string[] = [];

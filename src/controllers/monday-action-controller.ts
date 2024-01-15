@@ -92,6 +92,50 @@ class MondayActionController {
         }
     }
 
+    //integrationId: 252431281 
+    //recipeId: 30191128 
+    async autoId(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, itemId, columnId, format, numberOfDigits, userId } = inputFields;
+
+            await mondayActionService.autoId(boardId, itemId, columnId, format, numberOfDigits, userId);
+
+            return res.status(200).send({message: 'ID generation has been completed successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.autoId');
+            next(error);
+        }
+    }
+
+    //integrationId: 251833390 
+    //recipeId: 30189637 
+    async autoNumber(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, itemId, columnId, incrementValue } = inputFields;
+
+            await mondayActionService.autoNumber(boardId, itemId, columnId, incrementValue);
+
+            return res.status(200).send({message: 'Increment has been completed successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.autoNumber');
+            next(error);
+        }
+    }
+
     //integrationId: 239133538, 245268407
     //recipeId: 30171042, 30180578
     async updateItemName(req, res, next): Promise<void> {

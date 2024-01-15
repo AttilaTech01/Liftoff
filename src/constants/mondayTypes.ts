@@ -23,10 +23,12 @@ export type GeneralColumnValue = {
 };
 
 export enum MondayColumnType {
+    BOARD_RELATION = "board_relation",
     BUTTON = "button",
     COLOR = "color",
     DATE = "date",
     LOOKUP = "lookup",
+    MIRROR = "mirror",
     MULTIPLE_PERSON = "multiple-person",
     NAME = "name",
     NUMBERS = "numeric",

@@ -9,7 +9,8 @@ class ErrorHandler {
             return value;
         } 
         else if (value instanceof Error) {
-            return new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, value.message, value.message) });
+            customLogger.logError(`Error with name ${value.name} has occurred.\n Message : ${value.message}. \n Stack trace : ${value.stack}`);
+            return new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, "Unexpected error occurred.", "Unexpected error occurred.") });
         }
         else {
             let stringified: string = '[Unable to stringify the thrown value]';
