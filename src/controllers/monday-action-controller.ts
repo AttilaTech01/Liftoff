@@ -26,6 +26,28 @@ class MondayActionController {
         }
     }
 
+    //integrationId: 253298894 
+    //recipeId: 30192621
+    async checkAllDates(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, dateColumnId, numberOfDays, statusColumnId, statusColumnValue } = inputFields;
+
+            await mondayActionService.checkAllDates(boardId, dateColumnId, numberOfDays, statusColumnId, statusColumnValue);
+
+            return res.status(200).send({message: 'All dates have been checked successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.checkAllDates');
+            next(error);
+        }
+    }
+
     //integrationId: 245738684
     //recipeId: 30181398
     async checkAllDuplicates(req, res, next): Promise<void> {
@@ -44,6 +66,28 @@ class MondayActionController {
             return res.status(200).send({message: 'All duplicates have been checked successfully'});
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.checkAllDuplicates');
+            next(error);
+        }
+    }
+
+    //integrationId: 253299306
+    //recipeId: 30192624
+    async checkDate(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, itemId, dateColumnId, numberOfDays, statusColumnId, statusColumnValue } = inputFields;
+
+            await mondayActionService.checkDate(boardId, itemId, dateColumnId, numberOfDays, statusColumnId, statusColumnValue);
+
+            return res.status(200).send({message: 'Date has been checked successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.checkDates');
             next(error);
         }
     }

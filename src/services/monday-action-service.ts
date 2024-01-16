@@ -13,155 +13,18 @@ import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 import Utilities from '../utilities/utilities';
 
 interface IMondayActionService {
-    applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
-    checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
-    checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
-    copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean>;
     autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
+    applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
+    checkAllDates(boardId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
+    checkDate(boardId: number, itemId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
 
 class MondayActionService implements IMondayActionService {
-    async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
-        try {
-            const formulaWithValues: string = await this.replaceIdsByValues(formula, itemId);
-
-            const result = excelFormulaService.Generic(formulaWithValues);
-
-            //Write result in monday's column
-            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, result.toString());
-
-            return true;
-        } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
-            throw error;
-        }
-    }
-
-    async checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean> {
-        try {
-            //Get items from a board
-            const response: Board = await mondayRepo.getItemsByBoardId(boardId);
-
-            if (response.items_page == undefined || response.items_page.items == undefined) {
-                const message: string = "Couldn't get the data necessary to complete the operation.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
-            }
-
-            //Building simpler arrays to compare
-            let simpleItemsToCompare: SimpleItem[] = [];
-            let columnValues: string[] = [];
-            response.items_page.items.forEach(item => {
-                const columnToCompare: Column | undefined = item.column_values?.find(column => column.id === verifiedColumnId);
-                if (item.id && columnToCompare?.text) {
-                    columnValues.push(columnToCompare.text);
-                    simpleItemsToCompare.push({ id: item.id, value: columnToCompare.text });
-                }
-            })
-
-            //Iterate on cursor value (pagination) and get all items from board
-            let currentCursor: string | undefined = response.items_page.cursor;
-            while (currentCursor != undefined) {
-                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
-                cursorResponse.items?.forEach(item => {
-                    const columnToCompare: Column | undefined = item.column_values?.find(column => column.id === verifiedColumnId);
-                    if (item.id && columnToCompare?.text) {
-                        columnValues.push(columnToCompare.text);
-                        simpleItemsToCompare.push({ id: item.id, value: columnToCompare.text });
-                    }
-                });
-                currentCursor = cursorResponse.cursor;
-            }
-
-            //Find duplicate values
-            const uniqueElements = new Set(columnValues);
-            const duplicateValues: string[] = columnValues.filter(value => {
-                if (uniqueElements.has(value)) {
-                    uniqueElements.delete(value);
-                } else {
-                    return value;
-                }
-            });
-
-            //Update status if value of item is a duplicate
-            simpleItemsToCompare.forEach(async (simpleItem) => {
-                if (duplicateValues.includes(simpleItem.value)) {
-                    await mondayRepo.changeSimpleColumnValue(boardId, Number(simpleItem.id), statusColumnId, String(statusColumnValue.index));
-                }
-            });
-
-            return true;
-        } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDuplicates');
-            throw error;
-        }
-    }
-
-    async checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
-        try {
-            //Get items with same value
-            const response: ItemsPage = await mondayRepo.getItemsPageByColumnValues(boardId, columnId, [String(columnValue.value)]);
-
-            if (response.items == undefined) {
-                const message: string = "Couldn't get the data necessary to complete the operation.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
-            }
-
-            //Iterate on cursor value (pagination)
-            let currentCursor: string | undefined = response.cursor;
-            while (currentCursor != undefined) {
-                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursor(currentCursor);
-                cursorResponse.items?.forEach(item => {
-                    response.items?.push(item);
-                });
-                currentCursor = cursorResponse.cursor;
-            }
-
-            //Iterate and change status of duplicates
-            if (response.items.length > 1) {
-                response.items.forEach(async (item) => {
-                    item.id && await mondayRepo.changeSimpleColumnValue(boardId, item.id, statusColumnId, String(statusColumnValue.index));
-                });
-            }
-
-            return true;   
-        } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDuplicates');
-            throw error;
-        }
-    }
-
-    async copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean> {
-        try {
-            const sourceIds: string[] = this.getColumnIdsFromCodes(sourceColumns);
-            const targetIds: string[] = this.getColumnIdsFromCodes(targetColumns);
-
-            if (sourceIds.length != targetIds.length) {
-                const message: string = "Received " + sourceIds.length + " source column ids and " + targetIds.length + " target column ids. Each source must be matched to one target.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Received parameters are incorrect", message, message) });
-            }
-
-            const item: Item = await mondayRepo.getItemInformations(itemId);
-
-            sourceIds.forEach(async (sourceId, index) => {
-                const columnToCopy: Column | undefined = item.column_values?.find(column => column.id === sourceId);
-
-                if (columnToCopy == undefined || columnToCopy.text == undefined) {
-                    const message: string = "The value of column with id " + sourceId + " couldn't be obtained.";
-                    throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Value is missing", message, message) });
-                }
-
-                await mondayRepo.changeSimpleColumnValue(boardId, itemId, targetIds[index], columnToCopy.text);
-            });
-
-            return true;
-        } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.copyColumnsContent');
-            throw error;
-        }
-    }
-
     async autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean> {
         let formatStringWithValues: string = format;
 
@@ -256,6 +119,219 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
+    async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
+        try {
+            const formulaWithValues: string = await this.replaceIdsByValues(formula, itemId);
+
+            const result = excelFormulaService.Generic(formulaWithValues);
+
+            //Write result in monday's column
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, result.toString());
+
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
+            throw error;
+        }
+    }
+
+    async checkAllDates(boardId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            //Get items from a board
+            const response: Board = await mondayRepo.getItemsByBoardId(boardId);
+
+            if (response.items_page == undefined || response.items_page.items == undefined) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Iterate on cursor value (pagination) and get all items from board
+            const itemList: Item[] = response.items_page.items;
+            let currentCursor: string | undefined = response.items_page.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    itemList.push(item);
+                });
+                currentCursor = cursorResponse.cursor;
+            }
+
+            //Check dates for each item in board
+            itemList.forEach(async item => {
+                await this.localCheckDate(boardId, item, dateColumnId, numberOfDays, statusColumnId, statusColumnValue);
+            });
+
+            return true;   
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDates');
+            throw error;
+        }
+    }
+
+    async checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean> {
+        try {
+            //Get items from a board
+            const response: Board = await mondayRepo.getItemsByBoardId(boardId);
+
+            if (response.items_page == undefined || response.items_page.items == undefined) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Building simpler arrays to compare
+            let simpleItemsToCompare: SimpleItem[] = [];
+            let columnValues: string[] = [];
+            response.items_page.items.forEach(item => {
+                const columnToCompare: Column | undefined = item.column_values?.find(column => column.id === verifiedColumnId);
+                if (item.id && columnToCompare?.text) {
+                    columnValues.push(columnToCompare.text);
+                    simpleItemsToCompare.push({ id: item.id, value: columnToCompare.text });
+                }
+            })
+
+            //Iterate on cursor value (pagination) and get all items from board
+            let currentCursor: string | undefined = response.items_page.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    const columnToCompare: Column | undefined = item.column_values?.find(column => column.id === verifiedColumnId);
+                    if (item.id && columnToCompare?.text) {
+                        columnValues.push(columnToCompare.text);
+                        simpleItemsToCompare.push({ id: item.id, value: columnToCompare.text });
+                    }
+                });
+                currentCursor = cursorResponse.cursor;
+            }
+
+            //Find duplicate values
+            const uniqueElements = new Set(columnValues);
+            const duplicateValues: string[] = columnValues.filter(value => {
+                if (uniqueElements.has(value)) {
+                    uniqueElements.delete(value);
+                } else {
+                    return value;
+                }
+            });
+
+            //Update status if value of item is a duplicate
+            simpleItemsToCompare.forEach(async (simpleItem) => {
+                if (duplicateValues.includes(simpleItem.value)) {
+                    await mondayRepo.changeSimpleColumnValue(boardId, Number(simpleItem.id), statusColumnId, String(statusColumnValue.index));
+                }
+            });
+
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDuplicates');
+            throw error;
+        }
+    }
+
+    async checkDate(boardId: number, itemId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            //Get item informations
+            const item: Item = await mondayRepo.getItemInformations(itemId);
+
+            if (!item || !item.column_values) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Find the value of the date
+            let dateAsString: string | undefined;
+            for (let column of item.column_values) {
+                if (column.id === dateColumnId) {
+                    dateAsString = column.text;
+                } 
+            }
+
+            if (!dateAsString) {
+                const message: string = "Couldn't find a date from the given column id.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Compare with numberOfDays
+            const [year, month, day] = dateAsString.split('-');
+            const dateAsDate: Date = new Date(+year, +month - 1, +day);
+            const today: Date = new Date(new Date().toDateString());
+            const daysDiff = Math.round((today.getTime() - dateAsDate.getTime()) / (24 * 60 * 60 * 1000));
+
+            //Update Monday status if needed
+            if (daysDiff > numberOfDays) {
+                await mondayRepo.changeSimpleColumnValue(boardId, itemId, statusColumnId, String(statusColumnValue.index));
+            }
+
+            return true;   
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDate');
+            throw error;
+        }
+    }
+
+    async checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            //Get items with same value
+            const response: ItemsPage = await mondayRepo.getItemsPageByColumnValues(boardId, columnId, [String(columnValue.value)]);
+
+            if (response.items == undefined) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Iterate on cursor value (pagination)
+            let currentCursor: string | undefined = response.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursor(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    response.items?.push(item);
+                });
+                currentCursor = cursorResponse.cursor;
+            }
+
+            //Iterate and change status of duplicates
+            if (response.items.length > 1) {
+                response.items.forEach(async (item) => {
+                    item.id && await mondayRepo.changeSimpleColumnValue(boardId, item.id, statusColumnId, String(statusColumnValue.index));
+                });
+            }
+
+            return true;   
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDuplicates');
+            throw error;
+        }
+    }
+
+    async copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean> {
+        try {
+            const sourceIds: string[] = this.getColumnIdsFromCodes(sourceColumns);
+            const targetIds: string[] = this.getColumnIdsFromCodes(targetColumns);
+
+            if (sourceIds.length != targetIds.length) {
+                const message: string = "Received " + sourceIds.length + " source column ids and " + targetIds.length + " target column ids. Each source must be matched to one target.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Received parameters are incorrect", message, message) });
+            }
+
+            const item: Item = await mondayRepo.getItemInformations(itemId);
+
+            sourceIds.forEach(async (sourceId, index) => {
+                const columnToCopy: Column | undefined = item.column_values?.find(column => column.id === sourceId);
+
+                if (columnToCopy == undefined || columnToCopy.text == undefined) {
+                    const message: string = "The value of column with id " + sourceId + " couldn't be obtained.";
+                    throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Value is missing", message, message) });
+                }
+
+                await mondayRepo.changeSimpleColumnValue(boardId, itemId, targetIds[index], columnToCopy.text);
+            });
+
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.copyColumnsContent');
+            throw error;
+        }
+    }
+
     async updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean> { 
         try { 
             //Create new name
@@ -269,6 +345,8 @@ class MondayActionService implements IMondayActionService {
             throw error;
         }
     }
+
+    //PRIVATE FUNCTIONS
 
     /**
     * {pulse.number5}
@@ -297,6 +375,43 @@ class MondayActionService implements IMondayActionService {
         });
         
         return arrayToReturn;
+    }
+
+    private async localCheckDate(boardId: number, item: Item, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            if (!item.id || !item.column_values) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Find the value of the date
+            let dateAsString: string | undefined;
+            for (let column of item.column_values) {
+                if (column.id === dateColumnId) {
+                    dateAsString = column.text;
+                } 
+            }
+
+            if (!dateAsString) {
+                return true;
+            }
+
+            //Compare with numberOfDays
+            const [year, month, day] = dateAsString.split('-');
+            const dateAsDate: Date = new Date(+year, +month - 1, +day);
+            const today: Date = new Date(new Date().toDateString());
+            const daysDiff = Math.round((today.getTime() - dateAsDate.getTime()) / (24 * 60 * 60 * 1000));
+
+            //Update Monday status if needed
+            if (daysDiff > numberOfDays) {
+                await mondayRepo.changeSimpleColumnValue(boardId, item.id, statusColumnId, String(statusColumnValue.index));
+            }
+
+            return true;   
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.localCheckDate');
+            throw error;
+        }
     }
 
     /**
