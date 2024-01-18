@@ -13,9 +13,15 @@ router.post('/copy-columns-content', authenticationMiddleware, mondayActionContr
 //integrationId: 253298894
 //recipeId: 30192621
 router.post('/check-all-dates', authenticationMiddleware, mondayActionController.checkAllDates);
+//integrationId: 254096271
+//recipeId: 30192747
+router.post('/check-all-dates-condition', authenticationMiddleware, mondayActionController.checkAllDatesCondition);
 //integrationId: 253299306
 //recipeId: 30192624
 router.post('/check-date', authenticationMiddleware, mondayActionController.checkDate);
+//integrationId: 253560537
+//recipeId: 30192750
+router.post('/check-date-condition', authenticationMiddleware, mondayActionController.checkDateCondition);
 
 //DOUBLONS
 //integrationId: 245738684

@@ -16,9 +16,11 @@ interface IMondayActionService {
     autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean>;
     autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
-    checkAllDates(boardId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkAllDates(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkAllDatesCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
-    checkDate(boardId: number, itemId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkDate(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkDateCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
@@ -135,7 +137,7 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
-    async checkAllDates(boardId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    async checkAllDates(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
         try {
             //Get items from a board
             const response: Board = await mondayRepo.getItemsByBoardId(boardId);
@@ -158,12 +160,56 @@ class MondayActionService implements IMondayActionService {
 
             //Check dates for each item in board
             itemList.forEach(async item => {
-                await this.localCheckDate(boardId, item, dateColumnId, numberOfDays, statusColumnId, statusColumnValue);
+                await this.localCheckAllDates(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
             });
 
             return true;   
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDates');
+            throw error;
+        }
+    }
+
+    async checkAllDatesCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            //Get items from a board
+            const response: Board = await mondayRepo.getItemsByBoardId(boardId);
+
+            if (response.items_page == undefined || response.items_page.items == undefined) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Iterate on cursor value (pagination) and get all items from board
+            const itemList: Item[] = response.items_page.items;
+            let currentCursor: string | undefined = response.items_page.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    itemList.push(item);
+                });
+                currentCursor = cursorResponse.cursor;
+            }
+
+            //If value in condition column, check dates for each item in board
+            itemList.forEach(async item => {
+                let value;
+                if (item.column_values) {
+                    for (let column of item.column_values) {
+                        if (column.id === conditionColumnId) {
+                            value = column.text;
+                        } 
+                    }
+                }
+
+                if (!value) {
+                    await this.localCheckAllDates(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+                }
+            });
+
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDatesCondition');
             throw error;
         }
     }
@@ -227,7 +273,21 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
-    async checkDate(boardId: number, itemId: number, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    async checkDate(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            //Get item informations
+            const item: Item = await mondayRepo.getItemInformations(itemId);
+
+            await  this.localCheckDate(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+
+            return true;   
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDate');
+            throw error;
+        }
+    }
+
+    async checkDateCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
         try {
             //Get item informations
             const item: Item = await mondayRepo.getItemInformations(itemId);
@@ -237,33 +297,20 @@ class MondayActionService implements IMondayActionService {
                 throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
             }
 
-            //Find the value of the date
-            let dateAsString: string | undefined;
+            //Check if the condition value is empty
+            let value;
             for (let column of item.column_values) {
-                if (column.id === dateColumnId) {
-                    dateAsString = column.text;
+                if (column.id === conditionColumnId) {
+                    value = column.text;
                 } 
             }
 
-            if (!dateAsString) {
-                const message: string = "Couldn't find a date from the given column id.";
-                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            if (!value) {
+                await this.localCheckDate(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);  
             }
-
-            //Compare with numberOfDays
-            const [year, month, day] = dateAsString.split('-');
-            const dateAsDate: Date = new Date(+year, +month - 1, +day);
-            const today: Date = new Date(new Date().toDateString());
-            const daysDiff = Math.round((today.getTime() - dateAsDate.getTime()) / (24 * 60 * 60 * 1000));
-
-            //Update Monday status if needed
-            if (daysDiff > numberOfDays) {
-                await mondayRepo.changeSimpleColumnValue(boardId, itemId, statusColumnId, String(statusColumnValue.index));
-            }
-
-            return true;   
+            return true;
         } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDate');
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDateCondition');
             throw error;
         }
     }
@@ -377,7 +424,7 @@ class MondayActionService implements IMondayActionService {
         return arrayToReturn;
     }
 
-    private async localCheckDate(boardId: number, item: Item, dateColumnId: string, numberOfDays: number, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    private async localCheckAllDates(boardId: number, item: Item, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
         try {
             if (!item.id || !item.column_values) {
                 const message: string = "Couldn't get the data necessary to complete the operation.";
@@ -394,6 +441,44 @@ class MondayActionService implements IMondayActionService {
 
             if (!dateAsString) {
                 return true;
+            }
+
+            //Compare with numberOfDays
+            const [year, month, day] = dateAsString.split('-');
+            const dateAsDate: Date = new Date(+year, +month - 1, +day);
+            const today: Date = new Date(new Date().toDateString());
+            const daysDiff = Math.round((today.getTime() - dateAsDate.getTime()) / (24 * 60 * 60 * 1000));
+
+            //Update Monday status if needed
+            if (daysDiff > numberOfDays) {
+                await mondayRepo.changeSimpleColumnValue(boardId, item.id, statusColumnId, String(statusColumnValue.index));
+            }
+
+            return true;   
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.localCheckAllDates');
+            throw error;
+        }
+    }
+
+    private async localCheckDate(boardId: number, item: Item, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            if (!item.id || !item.column_values) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Find the value of the date
+            let dateAsString: string | undefined;
+            for (let column of item.column_values) {
+                if (column.id === dateColumnId) {
+                    dateAsString = column.text;
+                } 
+            }
+
+            if (!dateAsString) {
+                const message: string = "Couldn't find a date from the given column id.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
             }
 
             //Compare with numberOfDays
