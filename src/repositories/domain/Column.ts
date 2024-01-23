@@ -15,6 +15,7 @@ export class ColumnConverter {
             display_value: data.display_value,
             id: data.id,
             text: data.type === MondayColumnType.MIRROR || data.type === MondayColumnType.BOARD_RELATION ? data.display_value : data.text,
+            title: data.title,
             type: data.type
         };
     }

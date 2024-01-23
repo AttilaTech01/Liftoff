@@ -3,7 +3,7 @@ import { ItemInformationResponse } from '../ItemInformationResponse';
 //mocks
 import MockItem from './Item';
 
-export class MockItemInformationResponse {
+class MockItemInformationResponse {
     mockValidItemInformationResponse = (): ItemInformationResponse => {
         return ({
             data: {
@@ -13,3 +13,5 @@ export class MockItemInformationResponse {
         });
     };
 }
+
+export default new MockItemInformationResponse;

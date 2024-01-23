@@ -1,7 +1,7 @@
 import { Board, BoardConverter } from './Board';
 import { Column, ColumnConverter } from './Column';
 import { Group, GroupConverter } from './Group';
-import { Subitem } from './Subitem';
+import { Subitem, SubitemConverter } from './Subitem';
 
 export interface Item {
     board?: Board;
@@ -21,7 +21,8 @@ export class ItemConverter {
             text: data.text,
             board: data.board ? BoardConverter.convertToBoard(data.board) : undefined,
             group: data.group ? GroupConverter.convertToGroup(data.group) : undefined,
-            column_values: data?.column_values?.map(column => ColumnConverter.convertToColumn(column))
+            column_values: data?.column_values?.map(column => ColumnConverter.convertToColumn(column)),
+            subitems: data?.subitems?.map(subitem => SubitemConverter.convertToSubitem(subitem))
         };
     }
 }

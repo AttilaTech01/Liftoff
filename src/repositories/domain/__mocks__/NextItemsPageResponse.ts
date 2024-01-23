@@ -3,7 +3,7 @@ import { NextItemsPageResponse } from '../NextItemsPageResponse';
 //mocks
 import MockItemsPage from './ItemsPage';
 
-export class MockItemsPageByColumnValuesResponse {
+class MockNextItemsPageResponse {
     mockValidNextItemsPageResponse = (): NextItemsPageResponse => {
         return ({
             data: {
@@ -13,3 +13,5 @@ export class MockItemsPageByColumnValuesResponse {
         });
     };
 }
+
+export default new MockNextItemsPageResponse;

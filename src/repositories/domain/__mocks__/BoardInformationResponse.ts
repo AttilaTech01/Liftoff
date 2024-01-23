@@ -3,7 +3,7 @@ import { BoardInformationResponse } from '../BoardInformationResponse';
 //mocks
 import MockBoard from './Board';
 
-export class MockBoardInformationResponse {
+class MockBoardInformationResponse {
     mockValidBoardInformationResponse = (): BoardInformationResponse => {
         return ({
             data: {
@@ -13,3 +13,5 @@ export class MockBoardInformationResponse {
         });
     };
 }
+
+export default new MockBoardInformationResponse;

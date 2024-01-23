@@ -3,7 +3,7 @@ import { UserInformationResponse } from '../UserInformationResponse';
 //mocks
 import MockUser from './User';
 
-export class MockItemsPageByColumnValuesResponse {
+class MockUserInformationResponse {
     mockValidUserInformationResponse = (): UserInformationResponse => {
         return ({
             data: {
@@ -13,3 +13,5 @@ export class MockItemsPageByColumnValuesResponse {
         });
     };
 }
+
+export default new MockUserInformationResponse;
