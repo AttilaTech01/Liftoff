@@ -1,31 +1,5 @@
 class Utilities {
     /**
-    * "10" || "123.78" || "test"
-    * RETURNS
-    * true || true || false
-    */
-    private isNumeric(value: string): boolean {
-        const regEx = new RegExp("^-?[0-9]([0-9.,]+)?", 'g');
-        return regEx.test(value) ? true : false;
-    }
-
-    /**
-    * 23
-    * RETURNS
-    * 2
-    */
-    private numberOfDigits = (value: number): number => {
-        let result = 0;
-
-        while (value > 0) {
-            value = Math.floor(value / 10);
-            result++;
-        }
-
-        return result;
-    };
-
-    /**
     * ['0023','000003','0000002','0012']
     * RETURNS
     * [23,3,2,12]
@@ -34,7 +8,6 @@ class Utilities {
         const numbersToReturn: number[] = [];
         
         for(let str of stringList) {
-            str.trim().replace(/0/g, '');
             if(this.isNumeric(str)) {
                 numbersToReturn.push(Number(str));
             }
@@ -58,6 +31,32 @@ class Utilities {
         }
 
         return stringToReturn; 
+    };
+
+    /**
+    * "10" || "123.78" || "test"
+    * RETURNS
+    * true || true || false
+    */
+    private isNumeric(value: string): boolean {
+        const maybeNumber: number = Number(value);
+        return !isNaN(+maybeNumber);
+    }
+
+    /**
+    * 23
+    * RETURNS
+    * 2
+    */
+    private numberOfDigits = (value: number): number => {
+        let result = 0;
+
+        while (value > 0) {
+            value = Math.floor(value / 10);
+            result++;
+        }
+
+        return result;
     };
 }
 
