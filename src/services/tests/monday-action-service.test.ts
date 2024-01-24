@@ -46,36 +46,6 @@ describe('applyFormula', () => {
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, '4');
     });
 
-    /* Has to be tested by excel-formula-service.test
-    test('FormulaIsUnknown_ThrowsError', async () => {
-        //Arrange
-        const boardId: number = 1;
-        const itemId: number = mockItem.id || 1;
-        const formula: string = "SIM({pulse.column1},{pulse.column3})";
-        const columnId: string = '1';
-        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
-
-        //Assert
-        await expect(mondayService.applyFormula(boardId, itemId, formula, columnId)).rejects.toThrow(CustomError);
-        expect(mockGetItem).toHaveBeenCalledTimes(1);
-        expect(mockGetItem).toHaveBeenCalledWith(itemId);
-    });
-
-    test('DivisionByZero_ThrowsError', async () => {
-        //Arrange
-        const boardId: number = 1;
-        const itemId: number = mockItem.id || 1;
-        const formula: string = "2/0";
-        const columnId: string = '1';
-        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
-
-        //Assert
-        await expect(mondayService.applyFormula(boardId, itemId, formula, columnId)).rejects.toThrow(CustomError);
-        expect(mockGetItem).toHaveBeenCalledTimes(1);
-        expect(mockGetItem).toHaveBeenCalledWith(itemId);
-    });
-    */
-
     test('GetItemReturnsError_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
