@@ -4,18 +4,15 @@ import { GeneralColumnValue, StatusColumnValue } from '../../constants/mondayTyp
 import { CustomError } from '../../models/CustomError';
 import mondayRepo from '../../repositories/monday-repository';
 import { Board } from '../../repositories/domain/Board';
-import { Column } from '../../repositories/domain/Column';
 import { Item } from '../../repositories/domain/Item';
 import { ItemsPage } from '../../repositories/domain/ItemsPage';
 import { User } from '../../repositories/domain/User';
 import MockBoard from '../../repositories/domain/__mocks__/Board';
-import MockColumn from '../../repositories/domain/__mocks__/Column';
 import MockItem from '../../repositories/domain/__mocks__/Item';
 import MockItemsPage from '../../repositories/domain/__mocks__/ItemsPage';
 import MockUser from '../../repositories/domain/__mocks__/User';
 
 let mockBoard: Board = MockBoard.mockValidBoard();
-const mockColumn: Column = MockColumn.mockValidColumn();
 let mockItem: Item = MockItem.mockValidItem();
 let mockItemsPage: ItemsPage = MockItemsPage.mockValidItemsPage();
 const mockUser: User = MockUser.mockValidUser();
@@ -112,6 +109,36 @@ describe('autoId', () => {
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "TEST-00235-boardName-2");
     });
 
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id2';
+        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const nbOfDigits: number = 5;
+        const userId: number = 1;
+        const mockBoard: Board = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "TEST-00235-boardName-2");
+    });
+
     test('GetItemsPageReturnsError_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
@@ -202,6 +229,31 @@ describe('autoNumber', () => {
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "7");
     });
 
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id3';
+        const incrementValue: number = 1;
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersNumber").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.autoNumber(boardId, itemId, columnId, incrementValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "7");
+    });
+
     test('GetItemsPageReturnsError_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
@@ -263,6 +315,36 @@ describe('checkAllDates', () => {
         expect(mockGetItems).toHaveBeenCalledTimes(1);
         expect(mockGetItems).toHaveBeenCalledWith(boardId);
         expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
         expect(mockChangeValue).toHaveBeenCalledTimes(2);
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
@@ -368,6 +450,36 @@ describe('checkAllDatesCondition', () => {
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
     });
 
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id1';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
+    });
+
     test('GetItemsReturnsError_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
@@ -438,6 +550,35 @@ describe('checkAllDuplicates', () => {
         expect(mockGetItems).toHaveBeenCalledTimes(1);
         expect(mockGetItems).toHaveBeenCalledWith(boardId);
         expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        const verifiedColumnId: string = 'id3';
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDuplicates(boardId, statusColumnId, statusColumnValue, verifiedColumnId);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
         expect(mockChangeValue).toHaveBeenCalledTimes(2);
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
@@ -673,6 +814,39 @@ describe('checkDuplicates', () => {
         expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
         expect(mockGetNextItemsPage).not.toHaveBeenCalled();
         expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const mockItemsPageWithCursor: ItemsPage = MockItemsPage.mockCustomItemsPage('withCursor');
+        mockItemsPage = MockItemsPage.mockCustomItemsPage();
+        const boardId: number = 1;
+        const columnId: string = 'id3';
+        const columnValue: GeneralColumnValue = {
+            value: '6',
+        }
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockResolvedValue(mockItemsPageWithCursor);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursor").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockItemsPageWithCursor.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(4);
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
     });

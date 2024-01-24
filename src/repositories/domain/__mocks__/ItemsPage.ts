@@ -10,9 +10,9 @@ class MockItemsPage {
         });
     };
 
-    mockCustomItemsPage = (): ItemsPage => {
+    mockCustomItemsPage = (cursorValue?: string): ItemsPage => {
         return ({
-                cursor: undefined,
+                cursor: cursorValue ? cursorValue : undefined,
                 items: [
                     {
                         board: {

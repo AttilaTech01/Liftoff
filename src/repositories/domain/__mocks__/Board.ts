@@ -10,10 +10,10 @@ class MockBoard {
         });
     };
 
-    mockCustomBoard = (): Board => {
+    mockCustomBoard = (cursorValue?: string): Board => {
         return ({
             items_page: {
-                cursor: undefined,
+                cursor: cursorValue ? cursorValue : undefined,
                 items: [
                     {
                         board: {
