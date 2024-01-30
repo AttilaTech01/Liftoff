@@ -13,9 +13,9 @@ import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 import Utilities from '../utilities/utilities';
 
 interface IMondayActionService {
+    applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
     autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean>;
     autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
-    applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
     checkAllDates(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     checkAllDatesCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
@@ -27,56 +27,77 @@ interface IMondayActionService {
 }
 
 class MondayActionService implements IMondayActionService {
+    async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
+        try {
+            const formulaWithValues: string = await this.replaceIdsByValues(formula, itemId);
+
+            const result = excelFormulaService.Generic(formulaWithValues);
+
+            //Write result in monday's column
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, result.toString());
+
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
+            throw error;
+        }
+    }
+
     async autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean> {
         let formatStringWithValues: string = format;
 
-        //Get filtered items based on board id and params
-        const board: Board = await mondayRepo.getItemsPageWithFiltersText(boardId, columnId);
+        try {
+            //Get filtered items based on board id and params
+            const board: Board = await mondayRepo.getItemsPageWithFiltersText(boardId, columnId);
 
-        if (board.items_page == undefined || board.items_page.items == undefined) {
-            const message: string = "Couldn't get the data necessary to complete the operation.";
-            throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
-        }
-
-        const itemList: Item[] = board.items_page.items;
-
-        //Iterate on cursor value (pagination) and get all items from board
-        let currentCursor: string | undefined = board.items_page.cursor;
-        while (currentCursor != undefined) {
-            const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
-            cursorResponse.items?.forEach(item => {
-                itemList.push(item);
-            });
-            currentCursor = cursorResponse.cursor;
-        }
-
-        //Getting all {ID} values
-        const valueList: string[] = [];
-        itemList.forEach(item => {
-            const column: Column | undefined = item.column_values?.find((column) => column.id === columnId);
-            if (column && column.text) {
-                const startIndexOfId: number = format.indexOf("{ID}");
-                valueList.push(column.text.substring(startIndexOfId, +startIndexOfId + +numberOfDigits));
+            if (board.items_page == undefined || board.items_page.items == undefined) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
             }
-        });
 
-        //Find biggest value, add on it, replace it in our new string
-        if (valueList.length <= 0) {
-            const newID: string = Utilities.transformNumberIntoStringWithDigits(1, numberOfDigits);
-            formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
-        } else {
-            const numberValueList: number[] = Utilities.transformStringsWithDigitsIntoNumbers(valueList);
-            const newBiggestValue: number = +Math.max(...numberValueList) + +1;
-            const newID: string = Utilities.transformNumberIntoStringWithDigits(newBiggestValue, numberOfDigits);
-            formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+            const itemList: Item[] = board.items_page.items;
+
+            //Iterate on cursor value (pagination) and get all items from board
+            let currentCursor: string | undefined = board.items_page.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursorWithColumnValues(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    itemList.push(item);
+                });
+                currentCursor = cursorResponse.cursor;
+            }
+
+            //Getting all {ID} values
+            const valueList: string[] = [];
+            itemList.forEach(item => {
+                const column: Column | undefined = item.column_values?.find((column) => column.id === columnId);
+                if (column && column.text) {
+                    const startIndexOfId: number = format.indexOf("{ID}");
+                    valueList.push(column.text.substring(startIndexOfId, +startIndexOfId + +numberOfDigits));
+                }
+            });
+
+            //Find biggest value, add on it, replace it in our new string
+            if (valueList.length <= 0) {
+                const newID: string = Utilities.transformNumberIntoStringWithDigits(1, numberOfDigits);
+                formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+            } else {
+                const numberValueList: number[] = Utilities.transformStringsWithDigitsIntoNumbers(valueList);
+                const newBiggestValue: number = +Math.max(...numberValueList) + +1;
+                const newID: string = Utilities.transformNumberIntoStringWithDigits(newBiggestValue, numberOfDigits);
+                formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+            }
+
+            //Replacing all other ids in the asked format by their value
+            formatStringWithValues = await this.replaceIdsByValues(formatStringWithValues, itemId, userId);
+
+            //Updating Monday's specified column
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, formatStringWithValues);
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoNumber');
+            throw error;
         }
-
-        //Replacing all other ids in the asked format by their value
-        formatStringWithValues = await this.replaceIdsByValues(formatStringWithValues, itemId, userId);
-
-        //Updating Monday's specified column
-        await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, formatStringWithValues);
-        return true;
     }
 
     async autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean> {
@@ -117,22 +138,6 @@ class MondayActionService implements IMondayActionService {
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoNumber');
-            throw error;
-        }
-    }
-
-    async applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean> {
-        try {
-            const formulaWithValues: string = await this.replaceIdsByValues(formula, itemId);
-
-            const result = excelFormulaService.Generic(formulaWithValues);
-
-            //Write result in monday's column
-            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, result.toString());
-
-            return true;
-        } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
             throw error;
         }
     }
@@ -278,7 +283,7 @@ class MondayActionService implements IMondayActionService {
             //Get item informations
             const item: Item = await mondayRepo.getItemInformations(itemId);
 
-            await  this.localCheckDate(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+            await this.localCheckDate(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
 
             return true;   
         } catch (err) {

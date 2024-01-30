@@ -1,52 +1,21 @@
 import mathService from '../excel-formula-service';
 import mondayService from '../monday-action-service';
-import { MondayColumnType } from '../../constants/mondayTypes';
+import { GeneralColumnValue, StatusColumnValue } from '../../constants/mondayTypes';
 import { CustomError } from '../../models/CustomError';
 import mondayRepo from '../../repositories/monday-repository';
+import { Board } from '../../repositories/domain/Board';
 import { Item } from '../../repositories/domain/Item';
+import { ItemsPage } from '../../repositories/domain/ItemsPage';
 import { User } from '../../repositories/domain/User';
+import MockBoard from '../../repositories/domain/__mocks__/Board';
+import MockItem from '../../repositories/domain/__mocks__/Item';
+import MockItemsPage from '../../repositories/domain/__mocks__/ItemsPage';
+import MockUser from '../../repositories/domain/__mocks__/User';
 
-const mockItem: Item = {
-    id: 123, 
-    name: 'name', 
-    board: { 
-        name: 'name' 
-    }, 
-    group: { 
-        title: 'title'
-    }, 
-    column_values: [
-        {
-            id: 'column1',
-            text: '1',
-            type: MondayColumnType.NUMBERS
-        },
-        {
-            id: 'column2',
-            text: 'text2',
-            type: MondayColumnType.TEXT
-        },
-        {
-            id: 'column3',
-            text: '3',
-            type: MondayColumnType.NUMBERS
-        },
-        {
-            id: 'column4',
-            text: 'text4',
-            type: MondayColumnType.TEXT
-        },
-        {
-            id: 'column5',
-            text: '0',
-            type: MondayColumnType.NUMBERS
-        },
-    ] 
-}
-
-const mockUser: User = {
-    name: 'userName', 
-}
+let mockBoard: Board = MockBoard.mockValidBoard();
+let mockItem: Item = MockItem.mockValidItem();
+let mockItemsPage: ItemsPage = MockItemsPage.mockValidItemsPage();
+const mockUser: User = MockUser.mockValidUser();
 
 afterEach(() => {
     jest.restoreAllMocks();
@@ -56,12 +25,12 @@ describe('applyFormula', () => {
     test('ValidParams_ReturnsTrue', async () => {
         //Arrange
         const boardId: number = 1;
-        const itemId: number = 1;
-        const formula: string = "SUM({pulse.column1},{pulse.column3})";
+        const itemId: number = mockItem.id || 1;
+        const formula: string = "SUM({pulse.id},{pulse.id})";
         const columnId: string = '1';
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
-        const mockSUM = jest.spyOn(mathService, "Generic").mockImplementation(() => 4);
+        jest.spyOn(mathService, "Generic").mockImplementation(() => 4);
 
         //Act
         const result: boolean = await mondayService.applyFormula(boardId, itemId, formula, columnId);
@@ -74,46 +43,891 @@ describe('applyFormula', () => {
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, '4');
     });
 
-    test('FormulaIsUnknown_ThrowsError', async () => {
+    test('GetItemReturnsError_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
-        const itemId: number = 1;
-        const formula: string = "SIM({pulse.column1},{pulse.column3})";
-        const columnId: string = '1';
-        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
-
-        //Assert
-        await expect(mondayService.applyFormula(boardId, itemId, formula, columnId)).rejects.toThrow(CustomError);
-        expect(mockGetItem).toHaveBeenCalledTimes(1);
-        expect(mockGetItem).toHaveBeenCalledWith(itemId);
-    });
-
-    test('DivisionAndCouldntFindTwoValues_ThrowsError', async () => {
-        //Arrange
-        const boardId: number = 1;
-        const itemId: number = 1;
-        const formula: string = "DIVIDE({pulse.column1},{pulse.column123})";
-        const columnId: string = '1';
-        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
-
-        //Assert
-        await expect(mondayService.applyFormula(boardId, itemId, formula, columnId)).rejects.toThrow(CustomError);
-        expect(mockGetItem).toHaveBeenCalledTimes(1);
-        expect(mockGetItem).toHaveBeenCalledWith(itemId);
-    });
-
-    test('RepoReturnsError_ThrowsError', async () => {
-        //Arrange
-        const boardId: number = 1;
-        const itemId: number = 1;
-        const formula: string = "SUM({pulse.column1},{pulse.column3})";
+        const itemId: number = mockItem.id || 1;
+        const formula: string = "SUM({pulse.id},{pulse.id})";
         const columnId: string = '1';
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockRejectedValueOnce(new Error('errorMessage'));
 
-        //Assert
+        //Act
         await expect(mondayService.applyFormula(boardId, itemId, formula, columnId)).rejects.toThrow(CustomError);
+
+        //Assert
         expect(mockGetItem).toHaveBeenCalledTimes(1);
         expect(mockGetItem).toHaveBeenCalledWith(itemId);
+    });
+
+    test('ExcelFormulaServiceInError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const formula: string = "SUM({pulse.id},{pulse.id})";
+        const columnId: string = '1';
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockMathService = jest.spyOn(mathService, "Generic").mockImplementation(() => { throw new Error('errorMessage') });
+
+        //Act
+        await expect(mondayService.applyFormula(boardId, itemId, formula, columnId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+        expect(mockMathService).toHaveBeenCalledTimes(1);
+        expect(mockMathService).toHaveBeenCalledWith("SUM(2,2)");
+    });
+});
+
+describe('autoId', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id2';
+        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const nbOfDigits: number = 5;
+        const userId: number = 1;
+        const mockBoard: Board = MockBoard.mockCustomBoard();
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "TEST-00235-boardName-2");
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id2';
+        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const nbOfDigits: number = 5;
+        const userId: number = 1;
+        const mockBoard: Board = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "TEST-00235-boardName-2");
+    });
+
+    test('GetItemsPageReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id2';
+        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const nbOfDigits: number = 5;
+        const userId: number = 1;
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+    });
+
+    test('ItemNotFound_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id2';
+        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const nbOfDigits: number = 5;
+        const userId: number = 1;
+        mockBoard.items_page = undefined;
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
+
+        //Act
+        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+    });
+
+    test('GetItemReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id2';
+        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const nbOfDigits: number = 5;
+        const userId: number = 1;
+        const mockBoard: Board = MockBoard.mockCustomBoard();
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+    });
+});
+
+describe('autoNumber', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id3';
+        const incrementValue: number = 1;
+        mockBoard = MockBoard.mockCustomBoard();
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersNumber").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.autoNumber(boardId, itemId, columnId, incrementValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "7");
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id3';
+        const incrementValue: number = 1;
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersNumber").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.autoNumber(boardId, itemId, columnId, incrementValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "7");
+    });
+
+    test('GetItemsPageReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id3';
+        const incrementValue: number = 1;
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersNumber").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.autoNumber(boardId, itemId, columnId, incrementValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+    });
+
+    test('ItemNotFound_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = 1;
+        const columnId: string = 'id3';
+        const incrementValue: number = 1;
+        mockBoard.items_page = undefined;
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersNumber").mockResolvedValue(mockBoard);
+
+        //Act
+        await expect(mondayService.autoNumber(boardId, itemId, columnId, incrementValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId);
+    });
+});
+
+describe('checkAllDates', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard = MockBoard.mockCustomBoard();
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('GetItemsReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+    });
+
+    test('ItemNotFound_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard.items_page = undefined;
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+
+        //Act
+        await expect(mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+    });
+
+    test('ItemWithoutId_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        if (mockBoard.items_page?.items) {
+            mockBoard.items_page.items[0].id = undefined;
+        }
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+
+        //Act
+        await expect(mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+    });
+});
+
+describe('checkAllDatesCondition', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id1';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard = MockBoard.mockCustomBoard();
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id1';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 2, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('GetItemsReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id1';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+    });
+
+    test('ItemNotFound_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id1';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        mockBoard.items_page = undefined;
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+
+        //Act
+        await expect(mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+    });
+});
+
+describe('checkAllDuplicates', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        const verifiedColumnId: string = 'id3';
+        mockBoard = MockBoard.mockCustomBoard();
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDuplicates(boardId, statusColumnId, statusColumnValue, verifiedColumnId);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        const verifiedColumnId: string = 'id3';
+        mockBoard = MockBoard.mockCustomBoard('withCursor');
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDuplicates(boardId, statusColumnId, statusColumnValue, verifiedColumnId);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockBoard.items_page?.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('GetItemsReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        const verifiedColumnId: string = 'id3';
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.checkAllDuplicates(boardId, statusColumnId, statusColumnValue, verifiedColumnId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+    });
+
+    test('ItemNotFound_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        const verifiedColumnId: string = 'id3';
+        mockBoard.items_page = undefined;
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+
+        //Act
+        await expect(mondayService.checkAllDuplicates(boardId, statusColumnId, statusColumnValue, verifiedColumnId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+    });
+});
+
+describe('checkDate', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        mockItem = MockItem.mockCustomItem();
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDate(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(boardId);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ItemWithoutId_ThrowsError', async () => {
+        //Arrange
+        mockItem = MockItem.mockCustomItem();
+        mockItem.id = undefined;
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+
+        //Act
+        await expect(mondayService.checkDate(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+    });
+
+    test('DateColumnNotFound_ThrowsError', async () => {
+        //Arrange
+        mockItem = MockItem.mockValidItem();
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+
+        //Act
+        await expect(mondayService.checkDate(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+    });
+});
+
+describe('checkDateCondition', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        mockItem = MockItem.mockCustomItem();
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id1';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDateCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(boardId);
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ConditionIsMet_ReturnsTrue', async () => {
+        //Arrange
+        mockItem = MockItem.mockCustomItem();
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id2';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDateCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(boardId);
+        expect(mockChangeValue).not.toHaveBeenCalled();
+    });
+
+    test('ItemHasNoColumnValues_ThrowsError', async () => {
+        //Arrange
+        mockItem = MockItem.mockCustomItem();
+        mockItem.column_values = undefined;
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const conditionColumnId: string = 'id1';
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        await expect(mondayService.checkDateCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(boardId);
+        expect(mockChangeValue).not.toHaveBeenCalled();
+    });
+});
+
+describe('checkDuplicates', () => {
+    test('ValidParams_ReturnsTrue', async () => {
+        //Arrange
+        mockItemsPage = MockItemsPage.mockCustomItemsPage();
+        const boardId: number = 1;
+        const columnId: string = 'id3';
+        const columnValue: GeneralColumnValue = {
+            value: '6',
+        }
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockResolvedValue(mockItemsPage);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursor").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsWithCursor_ReturnsTrue', async () => {
+        //Arrange
+        const mockItemsPageWithCursor: ItemsPage = MockItemsPage.mockCustomItemsPage('withCursor');
+        mockItemsPage = MockItemsPage.mockCustomItemsPage();
+        const boardId: number = 1;
+        const columnId: string = 'id3';
+        const columnValue: GeneralColumnValue = {
+            value: '6',
+        }
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockResolvedValue(mockItemsPageWithCursor);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursor").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
+        expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockItemsPageWithCursor.cursor);
+        expect(mockChangeValue).toHaveBeenCalledTimes(4);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+    });
+    
+    test('GetItemsPageReturnsError_ThrowsError', async () => {
+        //Arrange
+        mockItemsPage = MockItemsPage.mockCustomItemsPage();
+        const boardId: number = 1;
+        const columnId: string = 'id3';
+        const columnValue: GeneralColumnValue = {
+            value: '6',
+        }
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
+    });
+
+    test('ItemsNotFound_ThrowsError', async () => {
+        //Arrange
+        mockItemsPage = MockItemsPage.mockCustomItemsPage();
+        mockItemsPage.items = undefined;
+        const boardId: number = 1;
+        const columnId: string = 'id3';
+        const columnValue: GeneralColumnValue = {
+            value: '6',
+        }
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockResolvedValue(mockItemsPage);
+
+        //Act
+        await expect(mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
+    });
+
+    test('NoDuplicatesFound_ReturnTrue', async () => {
+        //Arrange
+        mockItemsPage = MockItemsPage.mockCustomItemsPage();
+        mockItemsPage.items = [];
+        const boardId: number = 1;
+        const columnId: string = 'id3';
+        const columnValue: GeneralColumnValue = {
+            value: '6',
+        }
+        const statusColumnId: string = 'id2';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+
+        const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockResolvedValue(mockItemsPage);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursor").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
+        expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).not.toHaveBeenCalled();
     });
 });
 
@@ -121,9 +935,11 @@ describe('copyColumnsContent', () => {
     test('ValidParams_ReturnsTrue', async () => {
         //Arrange
         const boardId: number = 1;
-        const itemId: number = 1;
-        const sourceColumns: string = "{pulse.column1}{pulse.column2}";
-        const targetColumns: string = "{pulse.column3}{pulse.column4}";
+        const itemId: number = mockItem.id || 1;
+        const sourceColumns: string = "{pulse.id}{pulse.id}";
+        const targetColumns: string = "{pulse.id}{pulse.id}";
+        mockItem = MockItem.mockValidItem();
+
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
@@ -134,16 +950,16 @@ describe('copyColumnsContent', () => {
         expect(result).toBe(true);
         expect(mockGetItem).toHaveBeenCalledTimes(1);
         expect(mockGetItem).toHaveBeenCalledWith(itemId);
-        expect(mockChangeValue).toHaveBeenCalledTimes(2);
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, expect.any(String), expect.any(String));
+        expect(mockChangeValue).toHaveBeenCalledTimes(2);0
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, "id", "2");
     });
 
     test('InvalidNumberOfColumns_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
-        const itemId: number = 1;
-        const sourceColumns: string = "{pulse.column1}{pulse.column2}";
-        const targetColumns: string = "{pulse.column3}";
+        const itemId: number = mockItem.id || 1;
+        const sourceColumns: string = "{pulse.id}{pulse.id}";
+        const targetColumns: string = "{pulse.id}";
 
         //Assert
         await expect(mondayService.copyColumnsContent(boardId, itemId, sourceColumns, targetColumns))
@@ -151,35 +967,19 @@ describe('copyColumnsContent', () => {
             .toThrow(CustomError);
     });
 
-    /*
-    test('MismatchColumnIds_ThrowsError', async () => {
+    test('GetItemReturnsError_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
-        const itemId: number = 1;
-        const sourceColumns: string = "{pulse.column1}{pulse.column99}";
-        const targetColumns: string = "{pulse.column3}{pulse.column4}";
-        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
-        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+        const itemId: number = mockItem.id || 1;
+        const sourceColumns: string = "{pulse.id}{pulse.id}";
+        const targetColumns: string = "{pulse.id}{pulse.id}";
 
-        //Assert
-        await expect(mondayService.copyColumnsContent(boardId, itemId, sourceColumns, targetColumns)).rejects.toThrow(CustomError);
-        expect(mockGetItem).toHaveBeenCalledTimes(1);
-        expect(mockGetItem).toHaveBeenCalledWith(itemId);
-        expect(mockChangeValue).toHaveBeenCalledTimes(1);
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, "column3", "1");
-    });
-    */
-
-    test('RepoReturnsError_ThrowsError', async () => {
-        //Arrange
-        const boardId: number = 1;
-        const itemId: number = 1;
-        const sourceColumns: string = "{pulse.column1}{pulse.column2}";
-        const targetColumns: string = "{pulse.column3}{pulse.column4}";
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockRejectedValueOnce(new Error('errorMessage'));
 
-        //Assert
+        //Act
         await expect(mondayService.copyColumnsContent(boardId, itemId, sourceColumns, targetColumns)).rejects.toThrow(CustomError);
+
+        //Assert
         expect(mockGetItem).toHaveBeenCalledTimes(1);
         expect(mockGetItem).toHaveBeenCalledWith(itemId);
     });
@@ -189,8 +989,8 @@ describe('updateItemName', () => {
     test('ValidParams_ReturnsTrue', async () => {
         //Arrange
         const boardId: number = 1;
-        const itemId: number = 1;
-        const value: string = "{user.name}-{board.name}-{pulse.group}-{pulse.name}-{pulse.column2}-{pulse.column3}";
+        const itemId: number = mockItem.id || 1;
+        const value: string = "{user.name}-{board.name}-{pulse.group}-{pulse.name}-{pulse.id}-{pulse.id}";
         const userId: number = 1;
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
         const mockGetUser = jest.spyOn(mondayRepo, "getUserInformations").mockResolvedValue(mockUser);
@@ -202,24 +1002,64 @@ describe('updateItemName', () => {
         //Assert
         expect(result).toBe(true);
         expect(mockGetItem).toHaveBeenCalledTimes(1);
-        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+        expect(mockGetItem).toHaveBeenCalledWith(mockItem.id);
         expect(mockGetUser).toHaveBeenCalledTimes(1);
         expect(mockGetUser).toHaveBeenCalledWith(userId);
         expect(mockChangeValue).toHaveBeenCalledTimes(1);
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, "name", expect.any(String));
     });
 
-    test('RepoReturnsError_ThrowsError', async () => {
+    test('UnknownColumnId_ThrowsError', async () => {
         //Arrange
         const boardId: number = 1;
-        const itemId: number = 1;
-        const value: string = "{user.name}-{board.name}-{pulse.group}-{pulse.name}-{pulse.column2}-{pulse.column3}";
+        const itemId: number = mockItem.id || 1;
+        const value: string = "{user.name}-{board.name}-{pulse.group}-{pulse.name}-{pulse.UNKNOWN}-{pulse.id}";
+        const userId: number = 1;
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockGetUser = jest.spyOn(mondayRepo, "getUserInformations").mockResolvedValue(mockUser);
+
+        //Act
+        await expect(mondayService.updateItemName(boardId, itemId, value, userId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(mockItem.id);
+        expect(mockGetUser).toHaveBeenCalledTimes(1);
+        expect(mockGetUser).toHaveBeenCalledWith(userId);
+    });
+
+    test('GetItemReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const value: string = "{user.name}-{board.name}-{pulse.group}-{pulse.name}-{pulse.id}-{pulse.id}";
         const userId: number = 1;
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockRejectedValueOnce(new Error('errorMessage'));
 
-        //Assert
+        //Act
         await expect(mondayService.updateItemName(boardId, itemId, value, userId)).rejects.toThrow(CustomError);
+
+        //Assert
         expect(mockGetItem).toHaveBeenCalledTimes(1);
         expect(mockGetItem).toHaveBeenCalledWith(itemId);
+    });
+
+    test('GetUserReturnsError_ThrowsError', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const value: string = "{user.name}-{board.name}-{pulse.group}-{pulse.name}-{pulse.id}-{pulse.id}";
+        const userId: number = 1;
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockGetUser = jest.spyOn(mondayRepo, "getUserInformations").mockRejectedValueOnce(new Error('errorMessage'));
+
+        //Act
+        await expect(mondayService.updateItemName(boardId, itemId, value, userId)).rejects.toThrow(CustomError);
+
+        //Assert
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(itemId);
+        expect(mockGetUser).toHaveBeenCalledTimes(1);
+        expect(mockGetUser).toHaveBeenCalledWith(userId);
     });
 });

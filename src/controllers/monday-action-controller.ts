@@ -1,4 +1,4 @@
-import initMondayClient from 'monday-sdk-js';
+import mondaySdk from 'monday-sdk-js';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/CustomError';
 import mondayActionService from '../services/monday-action-service';
@@ -11,7 +11,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -33,7 +33,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -55,7 +55,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -77,7 +77,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -99,7 +99,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -121,7 +121,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -143,7 +143,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -165,7 +165,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -187,7 +187,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -209,7 +209,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
@@ -231,7 +231,7 @@ class MondayActionController {
         const { payload } = req.body;
 
         try {
-            globalThis.mondayClient = initMondayClient();
+            globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
