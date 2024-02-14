@@ -1,6 +1,6 @@
 import mathService from '../excel-formula-service';
 import mondayService from '../monday-action-service';
-import { GeneralColumnValue, StatusColumnValue } from '../../constants/mondayTypes';
+import { CustomTypeItem, GeneralColumnValue, StatusColumnValue } from '../../constants/mondayTypes';
 import { CustomError } from '../../models/CustomError';
 import mondayRepo from '../../repositories/monday-repository';
 import { Board } from '../../repositories/domain/Board';
@@ -209,7 +209,7 @@ describe('autoNumber', () => {
         //Arrange
         const boardId: number = 1;
         const itemId: number = 1;
-        const columnId: string = 'id3';
+        const columnId: string = 'id1';
         const incrementValue: number = 1;
         mockBoard = MockBoard.mockCustomBoard();
 
@@ -233,7 +233,7 @@ describe('autoNumber', () => {
         //Arrange
         const boardId: number = 1;
         const itemId: number = 1;
-        const columnId: string = 'id3';
+        const columnId: string = 'id1';
         const incrementValue: number = 1;
         mockBoard = MockBoard.mockCustomBoard('withCursor');
 
@@ -258,7 +258,7 @@ describe('autoNumber', () => {
         //Arrange
         const boardId: number = 1;
         const itemId: number = 1;
-        const columnId: string = 'id3';
+        const columnId: string = 'id1';
         const incrementValue: number = 1;
 
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersNumber").mockRejectedValueOnce(new Error('errorMessage'));
@@ -275,7 +275,7 @@ describe('autoNumber', () => {
         //Arrange
         const boardId: number = 1;
         const itemId: number = 1;
-        const columnId: string = 'id3';
+        const columnId: string = 'id1';
         const incrementValue: number = 1;
         mockBoard.items_page = undefined;
 
@@ -290,16 +290,20 @@ describe('autoNumber', () => {
     });
 });
 
-describe('checkAllDates', () => {
+describe('checkAllDatesStatusCondition', () => {
     test('ValidParams_ReturnsTrue', async () => {
         //Arrange
         const boardId: number = 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
         mockBoard = MockBoard.mockCustomBoard();
 
@@ -308,7 +312,7 @@ describe('checkAllDates', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool);
 
         //Assert
         expect(result).toBe(true);
@@ -320,15 +324,50 @@ describe('checkAllDates', () => {
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
     });
 
+    test('ValidParamsButConditionNotRespected_ReturnsTrue', async () => {
+        //Arrange
+        const boardId: number = 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'status';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'false'
+        };
+        mockBoard = MockBoard.mockCustomBoard();
+
+        const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
+        const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItems).toHaveBeenCalledTimes(1);
+        expect(mockGetItems).toHaveBeenCalledWith(boardId);
+        expect(mockGetNextItemsPage).not.toHaveBeenCalled();
+        expect(mockChangeValue).not.toHaveBeenCalled();
+    });
+
     test('ValidParamsWithCursor_ReturnsTrue', async () => {
         //Arrange
         const boardId: number = 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
         mockBoard = MockBoard.mockCustomBoard('withCursor');
 
@@ -337,7 +376,7 @@ describe('checkAllDates', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool);
 
         //Assert
         expect(result).toBe(true);
@@ -355,16 +394,20 @@ describe('checkAllDates', () => {
         const boardId: number = 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
 
         const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockRejectedValueOnce(new Error('errorMessage'));
 
         //Act
-        await expect(mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItems).toHaveBeenCalledTimes(1);
@@ -376,17 +419,21 @@ describe('checkAllDates', () => {
         const boardId: number = 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
         mockBoard.items_page = undefined;
 
         const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
 
         //Act
-        await expect(mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItems).toHaveBeenCalledTimes(1);
@@ -398,10 +445,14 @@ describe('checkAllDates', () => {
         const boardId: number = 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
         if (mockBoard.items_page?.items) {
             mockBoard.items_page.items[0].id = undefined;
@@ -411,7 +462,7 @@ describe('checkAllDates', () => {
         const mockGetNextItemsPage = jest.spyOn(mondayRepo, "getItemsNextPageFromCursorWithColumnValues").mockResolvedValue(mockItemsPage);
 
         //Act
-        await expect(mondayService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItems).toHaveBeenCalledTimes(1);
@@ -420,7 +471,7 @@ describe('checkAllDates', () => {
     });
 });
 
-describe('checkAllDatesCondition', () => {
+describe('checkAllDatesEmptyCondition', () => {
     test('ValidParams_ReturnsTrue', async () => {
         //Arrange
         const boardId: number = 1;
@@ -439,7 +490,7 @@ describe('checkAllDatesCondition', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkAllDatesEmptyCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
         //Assert
         expect(result).toBe(true);
@@ -468,7 +519,7 @@ describe('checkAllDatesCondition', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkAllDatesEmptyCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
         //Assert
         expect(result).toBe(true);
@@ -495,7 +546,7 @@ describe('checkAllDatesCondition', () => {
         const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockRejectedValueOnce(new Error('errorMessage'));
 
         //Act
-        await expect(mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkAllDatesEmptyCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItems).toHaveBeenCalledTimes(1);
@@ -518,7 +569,7 @@ describe('checkAllDatesCondition', () => {
         const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
 
         //Act
-        await expect(mondayService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkAllDatesEmptyCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItems).toHaveBeenCalledTimes(1);
@@ -535,7 +586,7 @@ describe('checkAllDuplicates', () => {
             index: 1,
             invalid: false
         };
-        const verifiedColumnId: string = 'id3';
+        const verifiedColumnId: string = 'id5';
         mockBoard = MockBoard.mockCustomBoard();
 
         const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
@@ -563,7 +614,7 @@ describe('checkAllDuplicates', () => {
             index: 1,
             invalid: false
         };
-        const verifiedColumnId: string = 'id3';
+        const verifiedColumnId: string = 'id5';
         mockBoard = MockBoard.mockCustomBoard('withCursor');
 
         const mockGetItems = jest.spyOn(mondayRepo, "getItemsByBoardId").mockResolvedValue(mockBoard);
@@ -626,7 +677,7 @@ describe('checkAllDuplicates', () => {
     });
 });
 
-describe('checkDate', () => {
+describe('checkDateStatusCondition', () => {
     test('ValidParams_ReturnsTrue', async () => {
         //Arrange
         mockItem = MockItem.mockCustomItem();
@@ -634,17 +685,21 @@ describe('checkDate', () => {
         const itemId: number = mockItem.id || 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
 
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkDate(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkDateStatusCondition(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool);
 
         //Assert
         expect(result).toBe(true);
@@ -652,6 +707,36 @@ describe('checkDate', () => {
         expect(mockGetItem).toHaveBeenCalledWith(boardId);
         expect(mockChangeValue).toHaveBeenCalledTimes(1);
         expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, statusColumnId, String(statusColumnValue.index));
+    });
+
+    test('ValidParamsButConditionNotRespected_ReturnsTrue', async () => {
+        //Arrange
+        mockItem = MockItem.mockCustomItem();
+        const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
+        const numberOfDays: number = 7;
+        const dateColumnId: string = 'date';
+        const statusColumnId: string = 'status';
+        const statusColumnValue: StatusColumnValue = {
+            index: 1,
+            invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'false'
+        };
+
+        const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
+        const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
+
+        //Act
+        const result: boolean = await mondayService.checkDateStatusCondition(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool);
+
+        //Assert
+        expect(result).toBe(true);
+        expect(mockGetItem).toHaveBeenCalledTimes(1);
+        expect(mockGetItem).toHaveBeenCalledWith(boardId);
+        expect(mockChangeValue).not.toHaveBeenCalled();
     });
 
     test('ItemWithoutId_ThrowsError', async () => {
@@ -662,16 +747,20 @@ describe('checkDate', () => {
         const itemId: number = mockItem.id || 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
 
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
 
         //Act
-        await expect(mondayService.checkDate(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkDateStatusCondition(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItem).toHaveBeenCalledTimes(1);
@@ -685,16 +774,20 @@ describe('checkDate', () => {
         const itemId: number = mockItem.id || 1;
         const numberOfDays: number = 7;
         const dateColumnId: string = 'date';
-        const statusColumnId: string = 'id2';
+        const statusColumnId: string = 'status';
         const statusColumnValue: StatusColumnValue = {
             index: 1,
             invalid: false
+        };
+        const bool: CustomTypeItem = {
+            title: 'title',
+            value: 'true'
         };
 
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockResolvedValue(mockItem);
 
         //Act
-        await expect(mondayService.checkDate(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkDateStatusCondition(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, statusColumnId, statusColumnValue, bool)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItem).toHaveBeenCalledTimes(1);
@@ -702,7 +795,7 @@ describe('checkDate', () => {
     });
 });
 
-describe('checkDateCondition', () => {
+describe('checkDateEmptyCondition', () => {
     test('ValidParams_ReturnsTrue', async () => {
         //Arrange
         mockItem = MockItem.mockCustomItem();
@@ -721,7 +814,7 @@ describe('checkDateCondition', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkDateCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkDateEmptyCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
         //Assert
         expect(result).toBe(true);
@@ -749,7 +842,7 @@ describe('checkDateCondition', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkDateCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkDateEmptyCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
         //Assert
         expect(result).toBe(true);
@@ -777,7 +870,7 @@ describe('checkDateCondition', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        await expect(mondayService.checkDateCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkDateEmptyCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItem).toHaveBeenCalledTimes(1);
@@ -791,6 +884,7 @@ describe('checkDuplicates', () => {
         //Arrange
         mockItemsPage = MockItemsPage.mockCustomItemsPage();
         const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
         const columnId: string = 'id3';
         const columnValue: GeneralColumnValue = {
             value: '6',
@@ -806,16 +900,15 @@ describe('checkDuplicates', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkDuplicates(boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue);
 
         //Assert
         expect(result).toBe(true);
         expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
         expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
         expect(mockGetNextItemsPage).not.toHaveBeenCalled();
-        expect(mockChangeValue).toHaveBeenCalledTimes(2);
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, statusColumnId, String(statusColumnValue.index));
     });
 
     test('ValidParamsWithCursor_ReturnsTrue', async () => {
@@ -823,6 +916,7 @@ describe('checkDuplicates', () => {
         const mockItemsPageWithCursor: ItemsPage = MockItemsPage.mockCustomItemsPage('withCursor');
         mockItemsPage = MockItemsPage.mockCustomItemsPage();
         const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
         const columnId: string = 'id3';
         const columnValue: GeneralColumnValue = {
             value: '6',
@@ -838,7 +932,7 @@ describe('checkDuplicates', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkDuplicates(boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue);
 
         //Assert
         expect(result).toBe(true);
@@ -846,15 +940,15 @@ describe('checkDuplicates', () => {
         expect(mockGetItemsPage).toHaveBeenCalledWith(boardId, columnId, [String(columnValue.value)]);
         expect(mockGetNextItemsPage).toHaveBeenCalledTimes(1);
         expect(mockGetNextItemsPage).toHaveBeenCalledWith(mockItemsPageWithCursor.cursor);
-        expect(mockChangeValue).toHaveBeenCalledTimes(4);
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 1, statusColumnId, String(statusColumnValue.index));
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, 3, statusColumnId, String(statusColumnValue.index));
+        expect(mockChangeValue).toHaveBeenCalledTimes(1);
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, statusColumnId, String(statusColumnValue.index));
     });
     
     test('GetItemsPageReturnsError_ThrowsError', async () => {
         //Arrange
         mockItemsPage = MockItemsPage.mockCustomItemsPage();
         const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
         const columnId: string = 'id3';
         const columnValue: GeneralColumnValue = {
             value: '6',
@@ -868,7 +962,7 @@ describe('checkDuplicates', () => {
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockRejectedValueOnce(new Error('errorMessage'));
 
         //Act
-        await expect(mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkDuplicates(boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
@@ -880,6 +974,7 @@ describe('checkDuplicates', () => {
         mockItemsPage = MockItemsPage.mockCustomItemsPage();
         mockItemsPage.items = undefined;
         const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
         const columnId: string = 'id3';
         const columnValue: GeneralColumnValue = {
             value: '6',
@@ -893,7 +988,7 @@ describe('checkDuplicates', () => {
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageByColumnValues").mockResolvedValue(mockItemsPage);
 
         //Act
-        await expect(mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
+        await expect(mondayService.checkDuplicates(boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
@@ -905,6 +1000,7 @@ describe('checkDuplicates', () => {
         mockItemsPage = MockItemsPage.mockCustomItemsPage();
         mockItemsPage.items = [];
         const boardId: number = 1;
+        const itemId: number = mockItem.id || 1;
         const columnId: string = 'id3';
         const columnValue: GeneralColumnValue = {
             value: '6',
@@ -920,7 +1016,7 @@ describe('checkDuplicates', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+        const result: boolean = await mondayService.checkDuplicates(boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue);
 
         //Assert
         expect(result).toBe(true);

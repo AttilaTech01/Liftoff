@@ -6,6 +6,7 @@ class MockColumn {
         return ({
             display_value: 'display_value',
             id: 'id',
+            index: 5,
             text: content || '2',
             title: 'title',
             type: MondayColumnType.NUMBERS
