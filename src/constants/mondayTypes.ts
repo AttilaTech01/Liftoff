@@ -5,6 +5,11 @@ export type CustomTypeItem = {
     invalid?: boolean;
 };
 
+export enum PrefixOrSuffixEnum {
+    PREFIX = 'PREFIX',
+    SUFFIX = 'SUFFIX'
+};
+
 //ERROR HANDLING
 export type SeverityCode = 4000 | 6000;
 

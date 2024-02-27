@@ -15,9 +15,9 @@ class MondayActionController {
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
-            const { boardId, itemId, columnId, format, numberOfDigits, userId } = inputFields;
+            const { boardId, userId, itemId, columnId, format, numberOfDigits, prefixOrSuffix } = inputFields;
 
-            await mondayActionService.autoId(boardId, itemId, columnId, format, numberOfDigits, userId);
+            await mondayActionService.autoId(boardId, itemId, columnId, format, numberOfDigits, userId, prefixOrSuffix);
 
             return res.status(200).send({message: 'ID generation has been completed successfully'});
         } catch (err) {

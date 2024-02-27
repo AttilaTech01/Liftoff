@@ -1,5 +1,5 @@
 import excelFormulaService from './excel-formula-service';
-import { CustomTypeItem, GeneralColumnValue, MondayColumnType, StatusColumnValue } from '../constants/mondayTypes';
+import { CustomTypeItem, GeneralColumnValue, MondayColumnType, StatusColumnValue, PrefixOrSuffixEnum } from '../constants/mondayTypes';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/CustomError';
 import { SimpleItem } from '../models/SimpleItem';
@@ -14,7 +14,7 @@ import Utilities from '../utilities/utilities';
 
 interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
-    autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean>;
+    autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem): Promise<boolean>;
     autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
     checkAllDatesStatusCondition(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean>;
     checkAllDatesEmptyCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
@@ -43,7 +43,7 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
-    async autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean> {
+    async autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem): Promise<boolean> {
         let formatStringWithValues: string = format;
 
         try {
@@ -72,27 +72,36 @@ class MondayActionService implements IMondayActionService {
             itemList.forEach(item => {
                 const column: Column | undefined = item.column_values?.find((column) => column.id === columnId);
                 if (column && column.text) {
-                    const startIndexOfId: number = format.indexOf("{ID}");
-                                        valueList.push(column.text.substring(startIndexOfId, +startIndexOfId + +numberOfDigits));
+                    if (prefixOrSuffix.value == PrefixOrSuffixEnum.PREFIX) {
+                        valueList.push(column.text.substring(column.text.length - +numberOfDigits, column.text.length));
+                    } else if (prefixOrSuffix.value == PrefixOrSuffixEnum.SUFFIX) {
+                        valueList.push(column.text.substring(0, 0 + +numberOfDigits));
+                    }                     
                 }
             });
             
             //Find biggest value, add on it, replace it in our new string
+            let newID: string;
             if (valueList.length <= 0) {
-                const newID: string = Utilities.transformNumberIntoStringWithDigits(1, numberOfDigits);
-                formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+                newID = Utilities.transformNumberIntoStringWithDigits(1, numberOfDigits);
             } else {
                 const numberValueList: number[] = Utilities.transformStringsWithDigitsIntoNumbers(valueList);
                 const newBiggestValue: number = +Math.max(...numberValueList) + +1;
-                const newID: string = Utilities.transformNumberIntoStringWithDigits(newBiggestValue, numberOfDigits);
-                formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+                newID = Utilities.transformNumberIntoStringWithDigits(newBiggestValue, numberOfDigits);
             }
+
+            if (prefixOrSuffix.value == PrefixOrSuffixEnum.PREFIX) {
+                formatStringWithValues = formatStringWithValues + newID;
+            } else if (prefixOrSuffix.value == PrefixOrSuffixEnum.SUFFIX) {
+                formatStringWithValues = newID + formatStringWithValues;
+            } 
 
             //Replacing all other ids in the asked format by their value
             formatStringWithValues = await this.replaceIdsByValues(formatStringWithValues, itemId, userId);
 
             //Updating Monday's specified column
             await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, formatStringWithValues);
+            
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoNumber');

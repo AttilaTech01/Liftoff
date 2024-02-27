@@ -85,9 +85,13 @@ describe('autoId', () => {
         const boardId: number = 1;
         const itemId: number = 1;
         const columnId: string = 'id2';
-        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const format: string = "{board.name}-{pulse.id}-";
         const nbOfDigits: number = 5;
         const userId: number = 1;
+        const prefixOrSuffix: CustomTypeItem = {
+            title: 'prefix',
+            value: 'PREFIX'
+        };
         const mockBoard: Board = MockBoard.mockCustomBoard();
 
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
@@ -96,7 +100,7 @@ describe('autoId', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId);
+        const result: boolean = await mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId, prefixOrSuffix);
 
         //Assert
         expect(result).toBe(true);
@@ -106,7 +110,7 @@ describe('autoId', () => {
         expect(mockGetItem).toHaveBeenCalledTimes(1);
         expect(mockGetItem).toHaveBeenCalledWith(itemId);
         expect(mockChangeValue).toHaveBeenCalledTimes(1);
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "TEST-00235-boardName-2");
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "boardName-2-00235");
     });
 
     test('ValidParamsWithCursor_ReturnsTrue', async () => {
@@ -114,9 +118,13 @@ describe('autoId', () => {
         const boardId: number = 1;
         const itemId: number = 1;
         const columnId: string = 'id2';
-        const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
+        const format: string = "{board.name}-{pulse.id}-";
         const nbOfDigits: number = 5;
         const userId: number = 1;
+        const prefixOrSuffix: CustomTypeItem = {
+            title: 'prefix',
+            value: 'PREFIX'
+        };
         const mockBoard: Board = MockBoard.mockCustomBoard('withCursor');
 
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
@@ -125,7 +133,7 @@ describe('autoId', () => {
         const mockChangeValue = jest.spyOn(mondayRepo, "changeSimpleColumnValue").mockResolvedValue(true);
 
         //Act
-        const result: boolean = await mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId);
+        const result: boolean = await mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId, prefixOrSuffix);
 
         //Assert
         expect(result).toBe(true);
@@ -136,7 +144,7 @@ describe('autoId', () => {
         expect(mockGetItem).toHaveBeenCalledTimes(1);
         expect(mockGetItem).toHaveBeenCalledWith(itemId);
         expect(mockChangeValue).toHaveBeenCalledTimes(1);
-        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "TEST-00235-boardName-2");
+        expect(mockChangeValue).toHaveBeenCalledWith(boardId, itemId, columnId, "boardName-2-00235");
     });
 
     test('GetItemsPageReturnsError_ThrowsError', async () => {
@@ -147,11 +155,15 @@ describe('autoId', () => {
         const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
         const nbOfDigits: number = 5;
         const userId: number = 1;
+        const prefixOrSuffix: CustomTypeItem = {
+            title: 'prefix',
+            value: 'PREFIX'
+        };
 
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockRejectedValueOnce(new Error('errorMessage'));
 
         //Act
-        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId)).rejects.toThrow(CustomError);
+        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId, prefixOrSuffix)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
@@ -166,12 +178,16 @@ describe('autoId', () => {
         const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
         const nbOfDigits: number = 5;
         const userId: number = 1;
+        const prefixOrSuffix: CustomTypeItem = {
+            title: 'prefix',
+            value: 'PREFIX'
+        };
         mockBoard.items_page = undefined;
 
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
 
         //Act
-        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId)).rejects.toThrow(CustomError);
+        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId, prefixOrSuffix)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItemsPage).toHaveBeenCalledTimes(1);
@@ -186,6 +202,10 @@ describe('autoId', () => {
         const format: string = "TEST-{ID}-{board.name}-{pulse.id}";
         const nbOfDigits: number = 5;
         const userId: number = 1;
+        const prefixOrSuffix: CustomTypeItem = {
+            title: 'prefix',
+            value: 'PREFIX'
+        };
         const mockBoard: Board = MockBoard.mockCustomBoard();
 
         const mockGetItemsPage = jest.spyOn(mondayRepo, "getItemsPageWithFiltersText").mockResolvedValue(mockBoard);
@@ -193,7 +213,7 @@ describe('autoId', () => {
         const mockGetItem = jest.spyOn(mondayRepo, "getItemInformations").mockRejectedValueOnce(new Error('errorMessage'));
 
         //Act
-        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId)).rejects.toThrow(CustomError);
+        await expect(mondayService.autoId(boardId, itemId, columnId, format, nbOfDigits, userId, prefixOrSuffix)).rejects.toThrow(CustomError);
 
         //Assert
         expect(mockGetItemsPage).toHaveBeenCalledTimes(1);

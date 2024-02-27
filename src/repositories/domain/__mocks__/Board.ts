@@ -33,7 +33,7 @@ class MockBoard {
                                 display_value: 'display_value',
                                 id: 'id2',
                                 index: undefined,
-                                text: 'TEST-00006-boardName-1',
+                                text: 'boardName-1-00006',
                                 title: 'title',
                                 type: MondayColumnType.TEXT
                             },
@@ -155,7 +155,7 @@ class MockBoard {
                                 display_value: 'display_value',
                                 id: 'id2',
                                 index: undefined,
-                                text: 'TEST-00012-boardName-2',
+                                text: 'boardName-2-00012',
                                 title: 'title',
                                 type: MondayColumnType.TEXT
                             },
@@ -277,7 +277,7 @@ class MockBoard {
                                 display_value: 'display_value',
                                 id: 'id2',
                                 index: undefined,
-                                text: 'TEST-00234-boardName-3',
+                                text: 'boardName-3-00234',
                                 title: 'title',
                                 type: MondayColumnType.TEXT
                             },
