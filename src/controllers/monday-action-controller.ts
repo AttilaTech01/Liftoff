@@ -4,6 +4,28 @@ import { CustomError } from '../models/CustomError';
 import mondayActionService from '../services/monday-action-service';
 
 class MondayActionController {
+    //integrationId: 266160326
+    //recipeId: 30210752  
+    async autoCopy(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = mondaySdk();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, userId, itemId, format, columnId } = inputFields;
+
+            await mondayActionService.autoCopy(boardId, userId, itemId, format, columnId);
+
+            return res.status(200).send({message: 'ID generation has been completed successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.autoCopy');
+            next(error);
+        }
+    }
+
     //integrationId: 252431281 
     //recipeId: 30191128 
     async autoId(req, res, next): Promise<void> {

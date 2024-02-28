@@ -14,6 +14,7 @@ import Utilities from '../utilities/utilities';
 
 interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
+    autoCopy(boardId: number, userId: number, itemId: number, format: string, columnId: string): Promise<boolean>;
     autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem): Promise<boolean>;
     autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
     checkAllDatesStatusCondition(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean>;
@@ -39,6 +40,21 @@ class MondayActionService implements IMondayActionService {
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.applyFormula');
+            throw error;
+        }
+    }
+
+    async autoCopy(boardId: number, userId: number, itemId: number, format: string, columnId: string): Promise<boolean> {
+        try {
+            //Replace all ids by column content
+            const formatStringWithValues = await this.replaceIdsByValues(format, itemId, userId);
+
+            //Updating Monday's specified column
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, formatStringWithValues);
+
+            return true;    
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoCopy');
             throw error;
         }
     }
