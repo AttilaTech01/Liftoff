@@ -36,10 +36,11 @@ class MockItemsPage {
                             },
                             {
                                 display_value: 'display_value',
-                                id: 'id3',
-                                text: '6',
+                                id: 'status',
+                                index: 1,
+                                text: 'Pending',
                                 title: 'title',
-                                type: MondayColumnType.NUMBERS
+                                type: MondayColumnType.STATUS
                             },
                             {
                                 display_value: 'display_value',
@@ -140,10 +141,11 @@ class MockItemsPage {
                             },
                             {
                                 display_value: 'display_value',
-                                id: 'id3',
-                                text: '6',
+                                id: 'status',
+                                index: 1,
+                                text: 'Pending',
                                 title: 'title',
-                                type: MondayColumnType.NUMBERS
+                                type: MondayColumnType.STATUS
                             },
                             {
                                 display_value: 'display_value',

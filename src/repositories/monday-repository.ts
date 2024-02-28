@@ -12,6 +12,7 @@ import { CustomError } from '../models/CustomError';
 
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
+    changeSimpleEmailColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
     getItemInformations(itemId: number): Promise<Item>;
     getItemsByBoardId(boardId: number): Promise<Board>;
     getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage>;
@@ -25,6 +26,28 @@ interface IMondayRepository {
 class MondayRepository implements IMondayRepository {
     async changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean> {
         globalThis.mondayClient.setApiVersion("2023-10");
+
+        try {
+            const query = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) {
+                change_simple_column_value (board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) {
+                id
+                }
+            }
+            `;
+            const variables = { boardId, columnId, itemId, value };
+
+            await globalThis.mondayClient.api(query, { variables });
+            //CHECK IF ERROR
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.changeSimpleColumnValue');
+            throw error;
+        }
+    }
+
+    async changeSimpleEmailColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean> {
+        globalThis.mondayClient.setApiVersion("2023-10");
+        value = value + ' ' + value;
 
         try {
             const query = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) {
@@ -65,6 +88,9 @@ class MondayRepository implements IMondayRepository {
                         ... on MirrorValue {
                             display_value
                         }
+                        ... on StatusValue  {
+                            index
+                        }
                     }
                 }
             }
@@ -93,6 +119,10 @@ class MondayRepository implements IMondayRepository {
                             column_values {
                                 id
                                 text
+                                type
+                                ... on StatusValue  {
+                                    index
+                                }
                             }
                         }
                     }
@@ -270,7 +300,6 @@ class MondayRepository implements IMondayRepository {
             const variables = { userId };
 
             const response: UserInformationResponse = await globalThis.mondayClient.api(query, { variables });
-            console.log('getUserInformations : ' + JSON.stringify(response));
             return UserInformationResponseConverter.convertToUserArray(response)[0];
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.getUserInformations');

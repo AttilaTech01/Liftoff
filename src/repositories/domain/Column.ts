@@ -3,6 +3,7 @@ import { MondayColumnType } from '../../constants/mondayTypes';
 export interface Column {
     display_value?: string;
     id?: string;
+    index?: number;
     text?: string;
     title?: string;
     type?: MondayColumnType;
@@ -14,6 +15,7 @@ export class ColumnConverter {
         return {
             display_value: data.display_value,
             id: data.id,
+            index: data.index,
             text: data.type === MondayColumnType.MIRROR || data.type === MondayColumnType.BOARD_RELATION ? data.display_value : data.text,
             title: data.title,
             type: data.type

@@ -4,6 +4,28 @@ import { CustomError } from '../models/CustomError';
 import mondayActionService from '../services/monday-action-service';
 
 class MondayActionController {
+    //integrationId: 266160326
+    //recipeId: 30210752  
+    async autoCopy(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = mondaySdk();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields } = payload;
+            const { boardId, userId, itemId, format, columnId } = inputFields;
+
+            await mondayActionService.autoCopy(boardId, userId, itemId, format, columnId);
+
+            return res.status(200).send({message: 'ID generation has been completed successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.autoCopy');
+            next(error);
+        }
+    }
+
     //integrationId: 252431281 
     //recipeId: 30191128 
     async autoId(req, res, next): Promise<void> {
@@ -15,9 +37,9 @@ class MondayActionController {
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
-            const { boardId, itemId, columnId, format, numberOfDigits, userId } = inputFields;
+            const { boardId, userId, itemId, columnId, format, numberOfDigits, prefixOrSuffix } = inputFields;
 
-            await mondayActionService.autoId(boardId, itemId, columnId, format, numberOfDigits, userId);
+            await mondayActionService.autoId(boardId, itemId, columnId, format, numberOfDigits, userId, prefixOrSuffix);
 
             return res.status(200).send({message: 'ID generation has been completed successfully'});
         } catch (err) {
@@ -72,7 +94,7 @@ class MondayActionController {
 
     //integrationId: 253298894 
     //recipeId: 30192621
-    async checkAllDates(req, res, next): Promise<void> {
+    async checkAllDatesStatusCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
 
@@ -81,9 +103,9 @@ class MondayActionController {
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
-            const { boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue } = inputFields;
+            const { boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool } = inputFields;
 
-            await mondayActionService.checkAllDates(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+            await mondayActionService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool);
 
             return res.status(200).send({message: 'All dates have been checked successfully'});
         } catch (err) {
@@ -94,7 +116,7 @@ class MondayActionController {
 
     //integrationId: 254096271
     //recipeId: 30192747
-    async checkAllDatesCondition(req, res, next): Promise<void> {
+    async checkAllDatesEmptyCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
 
@@ -105,7 +127,7 @@ class MondayActionController {
             const { inputFields } = payload;
             const { boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue } = inputFields;
 
-            await mondayActionService.checkAllDatesCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+            await mondayActionService.checkAllDatesEmptyCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
             return res.status(200).send({message: 'All dates have been checked successfully'});
         } catch (err) {
@@ -138,7 +160,7 @@ class MondayActionController {
 
     //integrationId: 253299306
     //recipeId: 30192624
-    async checkDate(req, res, next): Promise<void> {
+    async checkDateStatusCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
 
@@ -147,9 +169,9 @@ class MondayActionController {
             globalThis.mondayClient.setToken(shortLivedToken);
             
             const { inputFields } = payload;
-            const { boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue } = inputFields;
+            const { boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool } = inputFields;
 
-            await mondayActionService.checkDate(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+            await mondayActionService.checkDateStatusCondition(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool);
 
             return res.status(200).send({message: 'Date has been checked successfully'});
         } catch (err) {
@@ -160,7 +182,7 @@ class MondayActionController {
 
     //integrationId: 253560537
     //recipeId: 30192750
-    async checkDateCondition(req, res, next): Promise<void> {
+    async checkDateEmptyCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
 
@@ -171,7 +193,7 @@ class MondayActionController {
             const { inputFields } = payload;
             const { boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue } = inputFields;
 
-            await mondayActionService.checkDateCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
+            await mondayActionService.checkDateEmptyCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
             return res.status(200).send({message: 'Date has been checked successfully'});
         } catch (err) {
@@ -193,7 +215,7 @@ class MondayActionController {
             const { inputFields } = payload;
             const { boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue } = inputFields;
 
-            await mondayActionService.checkDuplicates(boardId, columnId, columnValue, statusColumnId, statusColumnValue);
+            await mondayActionService.checkDuplicates(boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue);
 
             return res.status(200).send({message: 'Duplicates have been checked successfully'});
         } catch (err) {
@@ -242,6 +264,16 @@ class MondayActionController {
             return res.status(200).send({message: 'Name has been updated successfully'});
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.updateItemName');
+            next(error);
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    async deprecated(req, res, next): Promise<void> {
+        try {
+            return res.status(200).send({message: 'Call has been received successfully but this scenario is deprecated.'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.deprecated');
             next(error);
         }
     }

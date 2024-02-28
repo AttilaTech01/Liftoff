@@ -30,6 +30,7 @@ class MockItem {
                 {
                     display_value: 'display_value',
                     id: 'id1',
+                    index: undefined,
                     text: undefined,
                     title: 'title',
                     type: MondayColumnType.NUMBERS
@@ -37,20 +38,23 @@ class MockItem {
                 {
                     display_value: 'display_value',
                     id: 'id2',
+                    index: undefined,
                     text: 'TEST-00006-boardName-1',
                     title: 'title',
                     type: MondayColumnType.TEXT
                 },
                 {
                     display_value: 'display_value',
-                    id: 'id3',
-                    text: '6',
+                    id: 'status',
+                    index: 1,
+                    text: 'Pending',
                     title: 'title',
-                    type: MondayColumnType.NUMBERS
+                    type: MondayColumnType.STATUS
                 },
                 {
                     display_value: 'display_value',
                     id: 'date',
+                    index: undefined,
                     text: '2021-01-01',
                     title: 'title',
                     type: MondayColumnType.DATE
@@ -67,6 +71,7 @@ class MockItem {
                         {
                             display_value: 'display_value',
                             id: 'subitemColumnId1',
+                            index: undefined,
                             text: 'subitem1',
                             title: 'title',
                             type: MondayColumnType.NUMBERS
@@ -74,6 +79,7 @@ class MockItem {
                         {
                             display_value: 'display_value',
                             id: 'subiteColumnId2',
+                            index: undefined,
                             text: 'subitem2',
                             title: 'title',
                             type: MondayColumnType.NUMBERS
@@ -87,6 +93,7 @@ class MockItem {
                         {
                             display_value: 'display_value',
                             id: 'subitemColumnId1',
+                            index: undefined,
                             text: 'subitem1',
                             title: 'title',
                             type: MondayColumnType.NUMBERS
@@ -94,6 +101,7 @@ class MockItem {
                         {
                             display_value: 'display_value',
                             id: 'subitemColumnId2',
+                            index: undefined,
                             text: 'subitem2',
                             title: 'title',
                             type: MondayColumnType.NUMBERS
@@ -107,6 +115,7 @@ class MockItem {
                         {
                             display_value: 'display_value',
                             id: 'subitemColumnId1',
+                            index: undefined,
                             text: 'subitem1',
                             title: 'title',
                             type: MondayColumnType.NUMBERS
@@ -114,6 +123,7 @@ class MockItem {
                         {
                             display_value: 'display_value',
                             id: 'subitemColumnId2',
+                            index: undefined,
                             text: 'subitem2',
                             title: 'title',
                             type: MondayColumnType.NUMBERS

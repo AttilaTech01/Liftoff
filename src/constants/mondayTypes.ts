@@ -1,7 +1,13 @@
 //CUSTOM ACTION/TRIGGERS
-export type CustomTypeListItem = {
+export type CustomTypeItem = {
     title: string;
     value: string;
+    invalid?: boolean;
+};
+
+export enum PrefixOrSuffixEnum {
+    PREFIX = 'PREFIX',
+    SUFFIX = 'SUFFIX'
 };
 
 //ERROR HANDLING
@@ -27,11 +33,13 @@ export enum MondayColumnType {
     BUTTON = "button",
     COLOR = "color",
     DATE = "date",
+    EMAIL = "email",
     LOOKUP = "lookup",
     MIRROR = "mirror",
     MULTIPLE_PERSON = "multiple-person",
     NAME = "name",
     NUMBERS = "numeric",
+    STATUS = "status",
     SUBTASKS = "subtasks",
     TEXT = "text",
     TIMERANGE = "timerange",

@@ -1,5 +1,5 @@
 import excelFormulaService from './excel-formula-service';
-import { GeneralColumnValue, StatusColumnValue } from '../constants/mondayTypes';
+import { CustomTypeItem, GeneralColumnValue, MondayColumnType, StatusColumnValue, PrefixOrSuffixEnum } from '../constants/mondayTypes';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/CustomError';
 import { SimpleItem } from '../models/SimpleItem';
@@ -14,14 +14,15 @@ import Utilities from '../utilities/utilities';
 
 interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
-    autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean>;
+    autoCopy(boardId: number, userId: number, itemId: number, format: string, columnId: string): Promise<boolean>;
+    autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem): Promise<boolean>;
     autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
-    checkAllDates(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
-    checkAllDatesCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkAllDatesStatusCondition(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean>;
+    checkAllDatesEmptyCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     checkAllDuplicates(boardId: number, statusColumnId: string, statusColumnValue: StatusColumnValue, verifiedColumnId: string): Promise<boolean>;
-    checkDate(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
-    checkDateCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
-    checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkDateStatusCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean>;
+    checkDateEmptyCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkDuplicates(boardId: number, itemId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
@@ -43,7 +44,22 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
-    async autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number): Promise<boolean> {
+    async autoCopy(boardId: number, userId: number, itemId: number, format: string, columnId: string): Promise<boolean> {
+        try {
+            //Replace all ids by column content
+            const formatStringWithValues = await this.replaceIdsByValues(format, itemId, userId);
+
+            //Updating Monday's specified column
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, formatStringWithValues);
+
+            return true;    
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoCopy');
+            throw error;
+        }
+    }
+
+    async autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem): Promise<boolean> {
         let formatStringWithValues: string = format;
 
         try {
@@ -66,33 +82,42 @@ class MondayActionService implements IMondayActionService {
                 });
                 currentCursor = cursorResponse.cursor;
             }
-
+            
             //Getting all {ID} values
             const valueList: string[] = [];
             itemList.forEach(item => {
                 const column: Column | undefined = item.column_values?.find((column) => column.id === columnId);
                 if (column && column.text) {
-                    const startIndexOfId: number = format.indexOf("{ID}");
-                    valueList.push(column.text.substring(startIndexOfId, +startIndexOfId + +numberOfDigits));
+                    if (prefixOrSuffix.value == PrefixOrSuffixEnum.PREFIX) {
+                        valueList.push(column.text.substring(column.text.length - +numberOfDigits, column.text.length));
+                    } else if (prefixOrSuffix.value == PrefixOrSuffixEnum.SUFFIX) {
+                        valueList.push(column.text.substring(0, 0 + +numberOfDigits));
+                    }                     
                 }
             });
-
+            
             //Find biggest value, add on it, replace it in our new string
+            let newID: string;
             if (valueList.length <= 0) {
-                const newID: string = Utilities.transformNumberIntoStringWithDigits(1, numberOfDigits);
-                formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+                newID = Utilities.transformNumberIntoStringWithDigits(1, numberOfDigits);
             } else {
                 const numberValueList: number[] = Utilities.transformStringsWithDigitsIntoNumbers(valueList);
                 const newBiggestValue: number = +Math.max(...numberValueList) + +1;
-                const newID: string = Utilities.transformNumberIntoStringWithDigits(newBiggestValue, numberOfDigits);
-                formatStringWithValues = formatStringWithValues.replace('{ID}', newID);
+                newID = Utilities.transformNumberIntoStringWithDigits(newBiggestValue, numberOfDigits);
             }
+
+            if (prefixOrSuffix.value == PrefixOrSuffixEnum.PREFIX) {
+                formatStringWithValues = formatStringWithValues + newID;
+            } else if (prefixOrSuffix.value == PrefixOrSuffixEnum.SUFFIX) {
+                formatStringWithValues = newID + formatStringWithValues;
+            } 
 
             //Replacing all other ids in the asked format by their value
             formatStringWithValues = await this.replaceIdsByValues(formatStringWithValues, itemId, userId);
 
             //Updating Monday's specified column
             await mondayRepo.changeSimpleColumnValue(boardId, itemId, columnId, formatStringWithValues);
+            
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoNumber');
@@ -142,7 +167,7 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
-    async checkAllDates(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    async checkAllDatesStatusCondition(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean> {
         try {
             //Get items from a board
             const response: Board = await mondayRepo.getItemsByBoardId(boardId);
@@ -163,19 +188,31 @@ class MondayActionService implements IMondayActionService {
                 currentCursor = cursorResponse.cursor;
             }
 
-            //Check dates for each item in board
+            //If status respects condition, check dates for each item in board
             itemList.forEach(async item => {
-                await this.localCheckAllDates(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+                let index;
+                const trueOrFalse: boolean = bool.value == "true" ? true : false;
+                if (item.column_values) {
+                    for (let column of item.column_values) {
+                        if (column.id === conditionStatusColumnId) {
+                            index = column.index;
+                        } 
+                    }
+                }
+
+                if (index != undefined && ((index === conditionStatusColumnValue.index) === trueOrFalse)) {
+                    await this.localCheckAllDates(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+                }
             });
 
             return true;   
         } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDates');
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDatesStatusCondition');
             throw error;
         }
     }
 
-    async checkAllDatesCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    async checkAllDatesEmptyCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
         try {
             //Get items from a board
             const response: Board = await mondayRepo.getItemsByBoardId(boardId);
@@ -214,7 +251,7 @@ class MondayActionService implements IMondayActionService {
 
             return true;
         } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDatesCondition');
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkAllDatesEmptyCondition');
             throw error;
         }
     }
@@ -278,21 +315,41 @@ class MondayActionService implements IMondayActionService {
         }
     }
 
-    async checkDate(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    async checkDateStatusCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean> {
         try {
+            const trueOrFalse: boolean = bool.value == "true" ? true : false;
+
             //Get item informations
             const item: Item = await mondayRepo.getItemInformations(itemId);
 
-            await this.localCheckDate(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+            //Get status condition value
+            let index;
+            if (item.column_values) {
+                for (let column of item.column_values) {
+                    if (column.id === conditionStatusColumnId) {
+                        index = column.index;
+                    } 
+                }
+            }
+
+            if (index == undefined) {
+                const message: string = "Given columns couldn't be found.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Only check date if condition is met
+            if ((index === conditionStatusColumnValue.index) === trueOrFalse) {
+                await this.localCheckAllDates(boardId, item, numberOfDays, dateColumnId, statusColumnId, statusColumnValue);
+            }
 
             return true;   
         } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDate');
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDateStatusCondition');
             throw error;
         }
     }
 
-    async checkDateCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    async checkDateEmptyCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
         try {
             //Get item informations
             const item: Item = await mondayRepo.getItemInformations(itemId);
@@ -315,12 +372,12 @@ class MondayActionService implements IMondayActionService {
             }
             return true;
         } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDateCondition');
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDateEmptyCondition');
             throw error;
         }
     }
 
-    async checkDuplicates(boardId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+    async checkDuplicates(boardId: number, itemId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
         try {
             //Get items with same value
             const response: ItemsPage = await mondayRepo.getItemsPageByColumnValues(boardId, columnId, [String(columnValue.value)]);
@@ -340,11 +397,9 @@ class MondayActionService implements IMondayActionService {
                 currentCursor = cursorResponse.cursor;
             }
 
-            //Iterate and change status of duplicates
+            //If duplicates have been found, change status
             if (response.items.length > 1) {
-                response.items.forEach(async (item) => {
-                    item.id && await mondayRepo.changeSimpleColumnValue(boardId, item.id, statusColumnId, String(statusColumnValue.index));
-                });
+                mondayRepo.changeSimpleColumnValue(boardId, itemId, statusColumnId, String(statusColumnValue.index));
             }
 
             return true;   
@@ -365,6 +420,18 @@ class MondayActionService implements IMondayActionService {
             }
 
             const item: Item = await mondayRepo.getItemInformations(itemId);
+            let targetColumnsArray: Column[] = [];
+
+            targetIds.forEach(async (targetId) => {
+                const targetColumn: Column | undefined = item.column_values?.find(column => column.id === targetId);
+
+                if (targetColumn == undefined || targetColumn.text == undefined) {
+                    const message: string = "The target column with id " + targetId + " couldn't be found.";
+                    throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Value is missing", message, message) });
+                }
+
+                targetColumnsArray.push(targetColumn);
+            });
 
             sourceIds.forEach(async (sourceId, index) => {
                 const columnToCopy: Column | undefined = item.column_values?.find(column => column.id === sourceId);
@@ -374,7 +441,11 @@ class MondayActionService implements IMondayActionService {
                     throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Value is missing", message, message) });
                 }
 
-                await mondayRepo.changeSimpleColumnValue(boardId, itemId, targetIds[index], columnToCopy.text);
+                if (targetColumnsArray[index].type === MondayColumnType.EMAIL) {
+                    await mondayRepo.changeSimpleEmailColumnValue(boardId, itemId, targetIds[index], columnToCopy.text);
+                } else {
+                    await mondayRepo.changeSimpleColumnValue(boardId, itemId, targetIds[index], columnToCopy.text);
+                }
             });
 
             return true;
@@ -441,7 +512,7 @@ class MondayActionService implements IMondayActionService {
             for (let column of item.column_values) {
                 if (column.id === dateColumnId) {
                     dateAsString = column.text;
-                } 
+                }
             }
 
             if (!dateAsString) {
