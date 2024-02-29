@@ -34,11 +34,11 @@ $ yarn install
 
 1. Add your MONDAY_SIGNING_SECRET to .env file
    <br> \*\* To get your MONDAY_SIGNING_SECRET go to monday.com, open Developers section, open your app and find the Signing Secret in "Basic Information" section
-2. Add PORT=6060 to env. file
+2. Add PORT=8080 to env. file
 3. Run the server with ngrok tunnel with the command:
 
 ```
-ngrok http --domain=probable-pelican-infinitely.ngrok-free.app 6060
+ngrok http --domain=probable-pelican-infinitely.ngrok-free.app 8080
 ```
 
 4. Finally, run :
