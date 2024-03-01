@@ -49,3 +49,31 @@ ngrok http --domain=probable-pelican-infinitely.ngrok-free.app 8080
 ```
 $ npm start
 ```
+
+# Deployment to monday code
+
+1. Run your tests to make sure everything is okay with command :
+
+```
+$ npm test
+```
+
+2. Push your code to monday code with command :
+
+```
+$ mapps code:push
+```
+
+3. After the push in completed, make sure everything is okay with command :
+
+```
+$ mapps code:status
+```
+
+4. Finally, push your code to Git with command :
+
+```
+$ git add .
+$ git commit -m "<commit message>"
+$ git push
+```
