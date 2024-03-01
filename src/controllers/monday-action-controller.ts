@@ -1,11 +1,10 @@
 import mondaySdk from 'monday-sdk-js';
+import { Logger } from '@mondaycom/apps-sdk';
 import errorHandler from '../middlewares/errorHandler';
 import { CustomError } from '../models/CustomError';
 import mondayActionService from '../services/monday-action-service';
 
 class MondayActionController {
-    //integrationId: 266160326
-    //recipeId: 30210752  
     async autoCopy(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -14,8 +13,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, userId, itemId, format, columnId } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /ids/auto-copy`);
 
             await mondayActionService.autoCopy(boardId, userId, itemId, format, columnId);
 
@@ -26,8 +28,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 252431281 
-    //recipeId: 30191128 
     async autoId(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -36,8 +36,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, userId, itemId, columnId, format, numberOfDigits, prefixOrSuffix } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${userId}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /ids/auto-id`);
 
             await mondayActionService.autoId(boardId, itemId, columnId, format, numberOfDigits, userId, prefixOrSuffix);
 
@@ -48,8 +51,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 251833390 
-    //recipeId: 30189637 
     async autoNumber(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -58,8 +59,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, columnId, incrementValue } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /ids/auto-id`);
 
             await mondayActionService.autoNumber(boardId, itemId, columnId, incrementValue);
 
@@ -70,8 +74,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 240018139, 245343033
-    //recipeId: 30172153, 30180577
     async applyFormula(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -80,8 +82,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, formula, columnId } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /formulas/apply-formula`);
 
             await mondayActionService.applyFormula(boardId, itemId, formula, columnId);
 
@@ -92,8 +97,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 253298894 
-    //recipeId: 30192621
     async checkAllDatesStatusCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -102,8 +105,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /dates/check-all-dates-status`);
 
             await mondayActionService.checkAllDatesStatusCondition(boardId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool);
 
@@ -114,8 +120,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 254096271
-    //recipeId: 30192747
     async checkAllDatesEmptyCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -124,8 +128,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /dates/check-all-dates-empty`);
 
             await mondayActionService.checkAllDatesEmptyCondition(boardId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
@@ -136,8 +143,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 245738684
-    //recipeId: 30181398
     async checkAllDuplicates(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -146,8 +151,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, statusColumnId, statusColumnValue, verifiedColumnId } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /duplicates/check-all-duplicates`);
 
             await mondayActionService.checkAllDuplicates(boardId, statusColumnId, statusColumnValue, verifiedColumnId);
 
@@ -158,8 +166,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 253299306
-    //recipeId: 30192624
     async checkDateStatusCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -168,8 +174,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /dates/check-date-status`);
 
             await mondayActionService.checkDateStatusCondition(boardId, itemId, numberOfDays, dateColumnId, statusColumnId, statusColumnValue, conditionStatusColumnId, conditionStatusColumnValue, bool);
 
@@ -180,8 +189,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 253560537
-    //recipeId: 30192750
     async checkDateEmptyCondition(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -190,8 +197,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /dates/check-date-empty`);
 
             await mondayActionService.checkDateEmptyCondition(boardId, itemId, numberOfDays, dateColumnId, conditionColumnId, statusColumnId, statusColumnValue);
 
@@ -202,8 +212,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 246741839
-    //recipeId: 30182862
     async checkDuplicates(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -212,8 +220,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /duplicates/check-duplicates`);
 
             await mondayActionService.checkDuplicates(boardId, itemId, columnId, columnValue, statusColumnId, statusColumnValue);
 
@@ -224,8 +235,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 242184509, 245096112
-    //recipeId: 30175811, 30180045
     async copyColumnsContent(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -234,8 +243,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, sourceColumns, targetColumns } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /utilities/copy-columns-content`);
 
             await mondayActionService.copyColumnsContent(boardId, itemId, sourceColumns, targetColumns);
 
@@ -246,8 +258,6 @@ class MondayActionController {
         }
     }
 
-    //integrationId: 239133538, 245268407
-    //recipeId: 30171042, 30180578
     async updateItemName(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -256,8 +266,11 @@ class MondayActionController {
             globalThis.mondayClient = mondaySdk();
             globalThis.mondayClient.setToken(shortLivedToken);
             
-            const { inputFields } = payload;
+            const { inputFields, integrationId } = payload;
             const { boardId, itemId, nameNewValue, userId } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${userId}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /names/rename-item`);
 
             await mondayActionService.updateItemName(boardId, itemId, nameNewValue, userId);
 
@@ -271,6 +284,9 @@ class MondayActionController {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     async deprecated(req, res, next): Promise<void> {
         try {
+            globalThis.logger = new Logger(`${globalThis.appName}-deprecated-route`);
+            globalThis.logger.warn(`POST resquest at /deprecated`);
+
             return res.status(200).send({message: 'Call has been received successfully but this scenario is deprecated.'});
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.deprecated');
