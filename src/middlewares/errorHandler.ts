@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import customLogger from '../middlewares/logger';
 import { CustomError } from '../models/CustomError';
 import MondayErrorGenerator from '../utilities/mondayErrorGenerator';
 
@@ -9,15 +8,15 @@ class ErrorHandler {
             return value;
         } 
         else if (value instanceof Error) {
-            customLogger.logError(`Error with name ${value.name} has occurred.\n Message : ${value.message}. \n Stack trace : ${value.stack}`);
-            return new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, "Unexpected error occurred.", "Unexpected error occurred.") });
+            const errorToSend = new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000(value.name, value.message, value.message) });
+            return errorToSend;
         }
         else {
             let stringified: string = '[Unable to stringify the thrown value]';
             try {
                 stringified = JSON.stringify(value);
             } catch {}
-            customLogger.logError(`This value was thrown as is, not through an Error: ${stringified}`);
+            globalThis.logger.error(`This value was thrown as is, not through an Error: ${stringified}`);
             return new CustomError({ httpCode: 500, mondayNotification: MondayErrorGenerator.generic500() });
         }
     }
@@ -31,12 +30,12 @@ class ErrorHandler {
     }
 
     private handleTrustedError(error: CustomError, response: Response): void {
-        customLogger.logError(`CustomError with http code ${error.httpCode} has occurred.\n Monday notification : ${JSON.stringify(error.mondayNotification)}. \n Stack trace : ${error.stack}`);
+        globalThis.logger.error(`CustomError with http code ${error.httpCode} has occurred.\n Monday notification : ${JSON.stringify(error.mondayNotification)}. \n Stack trace : ${error.stack}`);
         response.status(error.httpCode).send(error.mondayNotification);
     }
 
     private handleUntrustedError(error: Error | CustomError, response?: Response): void {
-        customLogger.logError(`Error with name ${error.name} has occurred.\n Message : ${error.message}. \n Stack trace : ${error.stack}`);
+        globalThis.logger.error(`Error with name ${error.name} has occurred.\n Message : ${error.message}. \n Stack trace : ${error.stack}`);
         if (response) {
           response.status(500).send({ message: error.message });
         }

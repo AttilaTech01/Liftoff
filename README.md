@@ -4,16 +4,19 @@ Liftoff - by [**Attila Technologies**](https://www.attila-technologies.com/)
 <br>This is an app available in the marketplace of [monday.com](https://try.monday.com/d8x1zdvc4fg5).
 <br>It contains recipes that can be used to enhanced your monday boards.
 
-## Monday Recipes
+## Monday Features
 
-1. Math Formula
+1. Dates
 
-2. Item renaming
+2. Duplicates
 
-3. Copying the content of columns
-   <br>**Params** : Board Id, Item Id, Source Column Ids, Target Column Ids
-   <br>**Restrictions** : Source Columns can be mirror or not, Number must point to Number, Text must point to Text, The order of the column ids indicates where to copy the content. Target Columns cant be mirror.
-   <br>**Result** : Copy the content of the source columns into the target columns.
+3. Ids
+
+4. Names
+
+5. Utilities
+
+6. _Formulas_ (Coming soon ...)
 
 # Developper Mode
 
@@ -34,15 +37,43 @@ $ yarn install
 
 1. Add your MONDAY_SIGNING_SECRET to .env file
    <br> \*\* To get your MONDAY_SIGNING_SECRET go to monday.com, open Developers section, open your app and find the Signing Secret in "Basic Information" section
-2. Add PORT=6060 to env. file
+2. Add PORT=8080 to env. file
 3. Run the server with ngrok tunnel with the command:
 
 ```
-ngrok http --domain=probable-pelican-infinitely.ngrok-free.app 6060
+ngrok http --domain=probable-pelican-infinitely.ngrok-free.app 8080
 ```
 
 4. Finally, run :
 
 ```
 $ npm start
+```
+
+# Deployment to monday code
+
+1. Run your tests to make sure everything is okay with command :
+
+```
+$ npm test
+```
+
+2. Push your code to monday code with command :
+
+```
+$ mapps code:push
+```
+
+3. After the push in completed, make sure everything is okay with command :
+
+```
+$ mapps code:status
+```
+
+4. Finally, push your code to Git with command :
+
+```
+$ git add .
+$ git commit -m "<commit message>"
+$ git push
 ```

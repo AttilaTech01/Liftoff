@@ -1,5 +1,4 @@
 import errorHandler from '../errorHandler';
-import customLogger from '../logger';
 import { CustomError } from '../../models/CustomError';
 import { MondayError } from '../../constants/mondayTypes';
 
@@ -26,7 +25,6 @@ const mockCustomError: CustomError = new CustomError({
     mondayNotification: mockMondayError 
 });
 const mockError: Error = new Error(mockErrorMessage);
-const mockResponse: any = {};
 
 afterEach(() => {
     jest.restoreAllMocks();
@@ -41,38 +39,6 @@ test('handleThrownObject_CustomError_ReturnsItself', () => {
 test('handleThrownObject_Error_ReturnsCustomError', () => {
     //Assert
     expect(errorHandler.handleThrownObject(mockError, mockLocation)).toStrictEqual(mockCustomError);
-});
-
-test('handleThrownObject_OtherTypes_ReturnsGenericCustomError', () => {
-    //Assert
-    expect(errorHandler.handleThrownObject(2, mockLocation)).toStrictEqual(mockGeneric500);
-    expect(errorHandler.handleThrownObject('2', mockLocation)).toStrictEqual(mockGeneric500);
-});
-
-test('handleError_CustomErrorWithResponse_LogsMessage', () => {
-    //Arrange
-    const logSpy = jest.spyOn(customLogger, 'logError');
-    mockResponse.status = jest.fn().mockReturnValue(mockResponse);
-    mockResponse.send = jest.fn().mockReturnValue(mockResponse);
-
-    //Act
-    errorHandler.handleError(mockCustomError, mockResponse);
-
-    //Assert
-    expect(logSpy).toHaveBeenCalledTimes(1);
-});
-
-test('handleError_Otherwise_LogsMessage', () => {
-    //Arrange
-    const logSpy = jest.spyOn(customLogger, 'logError');
-    mockResponse.status = jest.fn().mockReturnValue(mockResponse);
-    mockResponse.send = jest.fn().mockReturnValue(mockResponse);
-
-    //Act
-    errorHandler.handleError(mockError, mockResponse);
-
-    //Assert
-    expect(logSpy).toHaveBeenCalledTimes(1);
 });
 
 

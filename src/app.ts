@@ -12,10 +12,12 @@ const port = process.env.PORT;
 app.use(bodyParser.json());
 app.use(routes);
 
+globalThis.appName = "Liftoff";
+
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     errorHandler.handleError(err, res);
 });
 
-app.listen(port, () => console.log(`Liftoff is listening at http://localhost:${port}`));
+app.listen(port, () => console.log(`${globalThis.appName} is listening at http://localhost:${port}`));
 
 export default app;
