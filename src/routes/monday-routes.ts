@@ -24,7 +24,7 @@ router.post('/formulas/apply-formula', authenticationMiddleware, mondayActionCon
 //IDS
 router.post('/ids/auto-copy', authenticationMiddleware, mondayActionController.autoCopy);
 router.post('/ids/auto-id', authenticationMiddleware, mondayActionController.autoId);
-router.post('/ids/auto-id-with-status', authenticationMiddleware, mondayActionController.autoId);
+router.post('/ids/auto-id-with-status', authenticationMiddleware, mondayActionController.autoIdWithStatus);
 router.post('/ids/auto-number', authenticationMiddleware, mondayActionController.autoNumber);
 
 //NAMES

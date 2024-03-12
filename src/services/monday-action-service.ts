@@ -16,6 +16,7 @@ interface IMondayActionService {
     applyFormula(boardId: number, itemId: number, formula: string, columnId: string): Promise<boolean>;
     autoCopy(boardId: number, userId: number, itemId: number, format: string, columnId: string): Promise<boolean>;
     autoId(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem): Promise<boolean>;
+    autoIdWithStatus(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     autoNumber(boardId: number, itemId: number, columnId: string, incrementValue: number): Promise<boolean>;
     checkAllDatesStatusCondition(boardId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean>;
     checkAllDatesEmptyCondition(boardId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
@@ -121,7 +122,28 @@ class MondayActionService implements IMondayActionService {
             
             return true;
         } catch (err) {
-            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoNumber');
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoId');
+            throw error;
+        }
+    }
+
+    async autoIdWithStatus(boardId: number, itemId: number, columnId: string, format: string, numberOfDigits: number, userId: number, prefixOrSuffix: CustomTypeItem, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean> {
+        try {
+            //Create the new ID
+            const response: boolean = await this.autoId(boardId, itemId, columnId, format, numberOfDigits, userId, prefixOrSuffix);
+
+            //If an error as occured, 
+            if(!response) {
+                const message: string = "An error occured while creating the new ID.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Unexpected error", message, message) });
+            }
+
+            //Else, update status to new value
+            await mondayRepo.changeSimpleColumnValue(boardId, itemId, statusColumnId, String(statusColumnValue.index));
+            
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.autoIdWithStatus');
             throw error;
         }
     }

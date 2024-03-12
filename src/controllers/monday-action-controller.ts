@@ -51,6 +51,29 @@ class MondayActionController {
         }
     }
 
+    async autoIdWithStatus(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = mondaySdk();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields, integrationId } = payload;
+            const { boardId, userId, itemId, columnId, format, numberOfDigits, prefixOrSuffix, statusColumnId, statusColumnValue } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${userId}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /ids/auto-id-with-status`);
+
+            await mondayActionService.autoIdWithStatus(boardId, itemId, columnId, format, numberOfDigits, userId, prefixOrSuffix, statusColumnId, statusColumnValue);
+
+            return res.status(200).send({message: 'ID generation has been completed successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.autoIdWithStatus');
+            next(error);
+        }
+    }
+
     async autoNumber(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
