@@ -23,6 +23,7 @@ interface IMondayActionService {
     checkDateStatusCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue, conditionStatusColumnId: string, conditionStatusColumnValue: StatusColumnValue, bool: CustomTypeItem): Promise<boolean>;
     checkDateEmptyCondition(boardId: number, itemId: number, numberOfDays: number, dateColumnId: string, conditionColumnId: string, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
     checkDuplicates(boardId: number, itemId: number, columnId: string, columnValue: GeneralColumnValue, statusColumnId: string, statusColumnValue: StatusColumnValue): Promise<boolean>;
+    checkDuplicatesItemCreation(boardId: number, itemId: number, columnId: string): Promise<boolean>;
     copyColumnsContent(boardId: number, itemId: number, sourceColumns: string, targetColumns: string): Promise<boolean>;
     updateItemName(boardId: number, itemId: number, value: string, userId: number): Promise<boolean>;
 }
@@ -405,6 +406,42 @@ class MondayActionService implements IMondayActionService {
             return true;   
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDuplicates');
+            throw error;
+        }
+    }
+
+    async checkDuplicatesItemCreation(boardId: number, itemId: number, columnId: string): Promise<boolean> {
+        try {
+            //Get item and column informations
+            const item: Item = await mondayRepo.getItemInformations(itemId);
+            const column: Column | undefined = item.column_values?.find(column => column.id === columnId);
+
+            //Get items with same value
+            const response: ItemsPage = await mondayRepo.getItemsPageByColumnValues(boardId, columnId, [String(column?.text)]);
+
+            if (response.items == undefined) {
+                const message: string = "Couldn't get the data necessary to complete the operation.";
+                throw new CustomError({ httpCode: 400, mondayNotification: MondayErrorGenerator.severityCode4000("Data unavailable", message, message) });
+            }
+
+            //Iterate on cursor value (pagination)
+            let currentCursor: string | undefined = response.cursor;
+            while (currentCursor != undefined) {
+                const cursorResponse: ItemsPage = await mondayRepo.getItemsNextPageFromCursor(currentCursor);
+                cursorResponse.items?.forEach(item => {
+                    response.items?.push(item);
+                });
+                currentCursor = cursorResponse.cursor;
+            }
+
+            //If duplicates have been found, change status
+            if (response.items.length > 1) {
+                mondayRepo.deleteItem(itemId);
+            }
+
+            return true;   
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionService.checkDuplicatesItemCreation');
             throw error;
         }
     }

@@ -13,6 +13,7 @@ import { CustomError } from '../models/CustomError';
 interface IMondayRepository {
     changeSimpleColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
     changeSimpleEmailColumnValue(boardId: number, itemId: number, columnId: string, value: string): Promise<boolean>;
+    deleteItem(itemId: number): Promise<boolean>;
     getItemInformations(itemId: number): Promise<Item>;
     getItemsByBoardId(boardId: number): Promise<Board>;
     getItemsNextPageFromCursor(cursor: string): Promise<ItemsPage>;
@@ -63,6 +64,25 @@ class MondayRepository implements IMondayRepository {
             return true;
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.changeSimpleColumnValue');
+            throw error;
+        }
+    }
+
+    async deleteItem(itemId: number): Promise<boolean> {
+        try {
+            const query = `mutation ($itemId: ID!) {
+                delete_item (item_id: $itemId) {
+                    id
+                }
+            }
+            `;
+            const variables = { itemId };
+
+            await globalThis.mondayClient.api(query, { variables });
+            //CHECK IF ERROR
+            return true;
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayRepository.deleteItem');
             throw error;
         }
     }

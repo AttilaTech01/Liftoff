@@ -235,6 +235,29 @@ class MondayActionController {
         }
     }
 
+    async checkDuplicatesItemCreation(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = mondaySdk();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { inputFields, integrationId } = payload;
+            const { boardId, itemId, columnId } = inputFields;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${integrationId}`);
+            globalThis.logger.info(`POST resquest at /duplicates/check-duplicates-item-creation`);
+
+            await mondayActionService.checkDuplicatesItemCreation(boardId, itemId, columnId);
+
+            return res.status(200).send({message: 'Duplicates have been checked successfully'});
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.checkDuplicatesItemCreation');
+            next(error);
+        }
+    }
+
     async copyColumnsContent(req, res, next): Promise<void> {
         const { shortLivedToken } = req.session;
         const { payload } = req.body;
@@ -254,6 +277,27 @@ class MondayActionController {
             return res.status(200).send({message: 'Columns have been copied successfully'});
         } catch (err) {
             const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.copyColumnsContent');
+            next(error);
+        }
+    }
+
+    async event(req, res, next): Promise<void> {
+        const { shortLivedToken } = req.session;
+        const { payload } = req.body;
+
+        try {
+            globalThis.mondayClient = mondaySdk();
+            globalThis.mondayClient.setToken(shortLivedToken);
+            
+            const { type, data } = payload;
+            const { app_id, user_id, user_email, accound_id, account_name } = data;
+
+            globalThis.logger = new Logger(`${globalThis.appName}-${account_name}`);
+            globalThis.logger.info(`POST resquest of type ${type} at /event`);
+
+            return res.status(200).send();
+        } catch (err) {
+            const error: CustomError = errorHandler.handleThrownObject(err, 'MondayActionController.event');
             next(error);
         }
     }

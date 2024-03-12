@@ -16,6 +16,7 @@ router.post('/dates/check-date-empty', authenticationMiddleware, mondayActionCon
 //DUPLICATES
 router.post('/duplicates/check-all-duplicates', authenticationMiddleware, mondayActionController.checkAllDuplicates);
 router.post('/duplicates/check-duplicates', authenticationMiddleware, mondayActionController.checkDuplicates);
+router.post('/duplicates/check-duplicates-item-creation', authenticationMiddleware, mondayActionController.checkDuplicatesItemCreation);
 
 //FORMULAS
 router.post('/formulas/apply-formula', authenticationMiddleware, mondayActionController.applyFormula);
@@ -23,6 +24,7 @@ router.post('/formulas/apply-formula', authenticationMiddleware, mondayActionCon
 //IDS
 router.post('/ids/auto-copy', authenticationMiddleware, mondayActionController.autoCopy);
 router.post('/ids/auto-id', authenticationMiddleware, mondayActionController.autoId);
+router.post('/ids/auto-id-with-status', authenticationMiddleware, mondayActionController.autoId);
 router.post('/ids/auto-number', authenticationMiddleware, mondayActionController.autoNumber);
 
 //NAMES
@@ -31,5 +33,8 @@ router.post('/names/rename-item', authenticationMiddleware, mondayActionControll
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //DEPRECATED
 router.post('/deprecated', authenticationMiddleware, mondayActionController.deprecated);
+
+//WEBHOOKS
+router.post('/event', authenticationMiddleware, mondayActionController.event);
 
 export default router;
